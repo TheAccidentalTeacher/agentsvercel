@@ -50,6 +50,28 @@ const TOOLTIPS = {
     '#object-count': {
         text: 'Total number of objects currently placed in your level. Does not include the background image.',
         position: 'top'
+    },
+    
+    // AI Panel elements (7 tooltips)
+    '#ai-toggle': {
+        text: 'Collapse or expand the AI assistant panel. Use <kbd>Ctrl+Shift+A</kbd> to toggle quickly.',
+        position: 'left'
+    },
+    '#ai-settings': {
+        text: 'Configure AI settings including API keys, provider selection, and preferences. Use <kbd>Ctrl+Shift+S</kbd> as shortcut.',
+        position: 'left'
+    },
+    '#ai-clear': {
+        text: 'Clear the entire conversation history. This will remove all messages but keep your API configuration.',
+        position: 'left'
+    },
+    '#ai-input': {
+        text: 'Type your message to the AI assistant. <strong>Press Enter to send</strong>, Shift+Enter for new line. The AI can analyze your level, answer questions, and manipulate objects.',
+        position: 'top'
+    },
+    '#ai-send': {
+        text: 'Send your message to the AI assistant. The AI will respond and can take actions in your level. Use <kbd>Enter</kbd> as shortcut.',
+        position: 'top'
     }
 };
 
@@ -93,9 +115,17 @@ class GameEditor {
         // Tooltip system
         this.tooltipManager = null;
 
+        // AI panel elements
+        this.aiPanel = document.getElementById('ai-panel');
+        this.aiMessages = document.getElementById('ai-messages');
+        this.aiInput = document.getElementById('ai-input');
+        this.aiStatus = document.getElementById('ai-status');
+        this.aiSettingsModal = document.getElementById('ai-settings-modal');
+
         // Initialize
         this.setupEventListeners();
         this.initializeTooltips();
+        this.initializeAIPanel();
         this.startRenderLoop();
         this.updateObjectCount();
 
@@ -146,6 +176,193 @@ class GameEditor {
                 'right'
             );
         }
+    }
+
+    // ========================================================================
+    // AI PANEL SYSTEM
+    // ========================================================================
+
+    initializeAIPanel() {
+        // Set up AI panel event listeners
+        this.setupAIPanelListeners();
+        
+        // Load saved configuration if exists
+        this.loadAIConfig();
+        
+        console.log('✓ AI Panel initialized');
+    }
+
+    setupAIPanelListeners() {
+        // Toggle collapse/expand
+        document.getElementById('ai-toggle').addEventListener('click', () => {
+            this.aiPanel.classList.toggle('collapsed');
+            const btn = document.getElementById('ai-toggle');
+            btn.title = this.aiPanel.classList.contains('collapsed') 
+                ? 'Expand AI panel' 
+                : 'Collapse AI panel';
+        });
+
+        // Open settings modal
+        document.getElementById('ai-settings').addEventListener('click', () => {
+            this.openAISettings();
+        });
+
+        // Clear conversation
+        document.getElementById('ai-clear').addEventListener('click', () => {
+            if (confirm('Clear entire conversation history?')) {
+                this.clearAIConversation();
+            }
+        });
+
+        // Settings modal controls
+        document.getElementById('close-ai-settings').addEventListener('click', () => {
+            this.closeAISettings();
+        });
+
+        document.getElementById('cancel-ai-settings').addEventListener('click', () => {
+            this.closeAISettings();
+        });
+
+        document.getElementById('save-ai-settings').addEventListener('click', () => {
+            this.saveAIConfig();
+        });
+
+        // Provider switching
+        document.getElementById('ai-provider').addEventListener('change', (e) => {
+            this.switchAIProvider(e.target.value);
+        });
+
+        // Close modal on overlay click
+        this.aiSettingsModal.querySelector('.modal-overlay').addEventListener('click', () => {
+            this.closeAISettings();
+        });
+
+        // AI input handling (Phase 3 will implement actual sending)
+        this.aiInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                // Will implement in Phase 3
+                console.log('Send message (not yet implemented)');
+            }
+        });
+
+        document.getElementById('ai-send').addEventListener('click', () => {
+            // Will implement in Phase 3
+            console.log('Send message (not yet implemented)');
+        });
+    }
+
+    openAISettings() {
+        this.aiSettingsModal.classList.remove('hidden');
+        // Focus first input
+        setTimeout(() => {
+            const firstInput = this.aiSettingsModal.querySelector('input:not([type="checkbox"])');
+            if (firstInput) firstInput.focus();
+        }, 100);
+    }
+
+    closeAISettings() {
+        this.aiSettingsModal.classList.add('hidden');
+    }
+
+    switchAIProvider(provider) {
+        const anthropicGroup = document.getElementById('anthropic-group');
+        const openaiGroup = document.getElementById('openai-group');
+        
+        if (provider === 'anthropic') {
+            anthropicGroup.classList.remove('hidden');
+            openaiGroup.classList.add('hidden');
+        } else {
+            anthropicGroup.classList.add('hidden');
+            openaiGroup.classList.remove('hidden');
+        }
+    }
+
+    loadAIConfig() {
+        try {
+            const stored = localStorage.getItem('ai_config');
+            if (stored) {
+                const config = JSON.parse(stored);
+                
+                // Populate form
+                if (config.provider) {
+                    document.getElementById('ai-provider').value = config.provider;
+                    this.switchAIProvider(config.provider);
+                }
+                if (config.anthropic_key) {
+                    document.getElementById('anthropic-key').value = config.anthropic_key;
+                }
+                if (config.openai_key) {
+                    document.getElementById('openai-key').value = config.openai_key;
+                }
+                if (config.auto_analyze !== undefined) {
+                    document.getElementById('ai-auto-analyze').checked = config.auto_analyze;
+                }
+                
+                // Update status if configured
+                if ((config.provider === 'anthropic' && config.anthropic_key) ||
+                    (config.provider === 'openai' && config.openai_key)) {
+                    this.aiStatus.textContent = 'Ready';
+                    this.aiStatus.classList.add('ready');
+                    this.aiInput.disabled = false;
+                    document.getElementById('ai-send').disabled = false;
+                    this.aiInput.placeholder = 'Ask about your level or request changes...';
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load AI config:', error);
+        }
+    }
+
+    saveAIConfig() {
+        const config = {
+            provider: document.getElementById('ai-provider').value,
+            anthropic_key: document.getElementById('anthropic-key').value,
+            openai_key: document.getElementById('openai-key').value,
+            auto_analyze: document.getElementById('ai-auto-analyze').checked
+        };
+
+        try {
+            localStorage.setItem('ai_config', JSON.stringify(config));
+            
+            // Update UI
+            const hasKey = (config.provider === 'anthropic' && config.anthropic_key) ||
+                          (config.provider === 'openai' && config.openai_key);
+            
+            if (hasKey) {
+                this.aiStatus.textContent = 'Ready';
+                this.aiStatus.classList.add('ready');
+                this.aiInput.disabled = false;
+                document.getElementById('ai-send').disabled = false;
+                this.aiInput.placeholder = 'Ask about your level or request changes...';
+                this.updateStatus('AI Assistant configured and ready!');
+            } else {
+                this.aiStatus.textContent = 'Not Configured';
+                this.aiStatus.classList.remove('ready');
+            }
+            
+            this.closeAISettings();
+        } catch (error) {
+            alert('Failed to save configuration: ' + error.message);
+        }
+    }
+
+    clearAIConversation() {
+        // Clear all messages except welcome
+        this.aiMessages.innerHTML = `
+            <div class="ai-message system">
+                <p><strong>👋 Welcome to AI-Powered Level Design!</strong></p>
+                <p>I'm your collaborative AI assistant. I can:</p>
+                <ul>
+                    <li>Answer questions about game design</li>
+                    <li>Analyze your level layout</li>
+                    <li><strong>Actually manipulate objects</strong> in your level</li>
+                    <li>Suggest improvements and implement them</li>
+                </ul>
+                <p style="margin-top: 12px;">Click the ⚙️ settings button to configure your API key and get started!</p>
+            </div>
+        `;
+        this.updateStatus('Conversation cleared');
     }
 
     // ========================================================================

@@ -122,6 +122,20 @@ This project uses D&D-themed personas for different perspectives. See [`FELLOWSH
 - Arrow pointers for visual clarity
 - Escape key to dismiss
 
+✅ **AI Assistant Panel** (Phase 2 Complete - v1.2.0)
+- 3-column responsive layout (canvas + properties + AI panel)
+- Collapsible AI panel (450px → 50px)
+- Professional header with status indicator
+- Settings modal with API key configuration
+- Message rendering area with animations
+- Input area with textarea and send button
+- Support for Anthropic Claude and OpenAI GPT-4
+- Configuration persistence via localStorage
+- Clear conversation functionality
+- Provider switching
+- 5 new tooltips for AI elements
+- ~690 lines of new code (HTML + CSS + JavaScript)
+
 ✅ **Export System**
 - Clean JSON output format
 - Auto-copy to clipboard

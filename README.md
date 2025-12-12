@@ -4,7 +4,8 @@ A lightweight, browser-based 2D game level editor that works with any game. Buil
 
 ## Features
 
-- **✨ Universal Tooltips** (NEW v1.1.0) - Every UI element has helpful, context-aware tooltips with keyboard shortcuts
+- **🤖 AI Assistant Panel** (NEW v1.2.0) - Complete AI chat interface with settings, conversation management, and provider configuration
+- **✨ Universal Tooltips** (v1.1.0) - Every UI element has helpful, context-aware tooltips with keyboard shortcuts
 - **Load Background Images**: Set your level background from any image file
 - **Add Game Assets**: Browse and add multiple sprites/objects to your scene
 - **Drag & Drop Positioning**: Click and drag objects to arrange your level

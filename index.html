@@ -46,6 +46,50 @@
                     <p style="color: #999;">Select an object to view properties</p>
                 </div>
             </div>
+
+            <!-- AI Assistant Panel -->
+            <aside id="ai-panel" class="ai-panel">
+                <div class="ai-header">
+                    <div class="ai-title">
+                        <span class="ai-icon">🤖</span>
+                        <h3>AI Assistant</h3>
+                        <span class="ai-status" id="ai-status">Not Configured</span>
+                    </div>
+                    <div class="ai-actions">
+                        <button id="ai-settings" class="icon-btn" title="Configure AI settings">⚙️</button>
+                        <button id="ai-clear" class="icon-btn" title="Clear conversation">🗑️</button>
+                        <button id="ai-toggle" class="icon-btn" title="Collapse panel">◀</button>
+                    </div>
+                </div>
+                
+                <div class="ai-messages" id="ai-messages">
+                    <div class="ai-message system">
+                        <p><strong>👋 Welcome to AI-Powered Level Design!</strong></p>
+                        <p>I'm your collaborative AI assistant. I can:</p>
+                        <ul>
+                            <li>Answer questions about game design</li>
+                            <li>Analyze your level layout</li>
+                            <li><strong>Actually manipulate objects</strong> in your level</li>
+                            <li>Suggest improvements and implement them</li>
+                        </ul>
+                        <p style="margin-top: 12px;">Click the ⚙️ settings button to configure your API key and get started!</p>
+                    </div>
+                </div>
+                
+                <div class="ai-input-container">
+                    <textarea 
+                        id="ai-input" 
+                        placeholder="Ask about your level or request changes..." 
+                        rows="3"
+                        disabled
+                        title="Configure API key in settings to enable AI chat"></textarea>
+                    <div class="ai-input-actions">
+                        <button id="ai-send" class="btn-primary" disabled title="Send message (Enter)">
+                            <span class="icon">➤</span> Send
+                        </button>
+                    </div>
+                </div>
+            </aside>
         </div>
 
         <!-- Status Bar -->
@@ -60,6 +104,63 @@
     <input type="file" id="background-input" accept="image/*" style="display: none;">
     <input type="file" id="asset-input" accept="image/*" multiple style="display: none;">
     <input type="file" id="project-input" accept=".json" style="display: none;">
+
+    <!-- AI Settings Modal -->
+    <div id="ai-settings-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ AI Assistant Configuration</h2>
+                <button class="modal-close" id="close-ai-settings">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="ai-provider">AI Provider</label>
+                    <select id="ai-provider">
+                        <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                        <option value="openai">OpenAI (GPT-4 Turbo)</option>
+                    </select>
+                    <small>Choose your preferred AI provider</small>
+                </div>
+                
+                <div class="form-group" id="anthropic-group">
+                    <label for="anthropic-key">Anthropic API Key</label>
+                    <input 
+                        type="password" 
+                        id="anthropic-key" 
+                        placeholder="sk-ant-api...">
+                    <small>Get your key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></small>
+                </div>
+                
+                <div class="form-group hidden" id="openai-group">
+                    <label for="openai-key">OpenAI API Key</label>
+                    <input 
+                        type="password" 
+                        id="openai-key" 
+                        placeholder="sk-...">
+                    <small>Get your key at <a href="https://platform.openai.com" target="_blank" rel="noopener">platform.openai.com</a></small>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="ai-auto-analyze">
+                        Enable proactive AI suggestions
+                    </label>
+                    <small>AI will automatically analyze changes and offer suggestions</small>
+                </div>
+                
+                <div class="info-box">
+                    <strong>🔒 Privacy:</strong> Your API key is stored locally in your browser and never sent to our servers. You control your own AI usage and costs.
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-ai-settings">Cancel</button>
+                <button class="btn-primary" id="save-ai-settings">Save Configuration</button>
+            </div>
+        </div>
+    </div>
 
     <script src="editor.js"></script>
 </body>
