@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Game Level Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Top Toolbar -->
+        <div id="toolbar">
+            <h1>🎮 Game Level Editor</h1>
+            <div class="toolbar-buttons">
+                <button id="load-background" title="Load background image (Ctrl+B)">📷 Load Background</button>
+                <button id="add-asset" title="Add sprite/asset (Ctrl+A)">➕ Add Asset</button>
+                <button id="export-json" title="Export to JSON (Ctrl+E)">💾 Export JSON</button>
+                <button id="save-project" title="Save project file (Ctrl+S)">📁 Save Project</button>
+                <button id="load-project" title="Load project file (Ctrl+O)">📂 Load Project</button>
+                <button id="clear-all" title="Clear everything">🗑️ Clear All</button>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div id="workspace">
+            <!-- Canvas -->
+            <div id="canvas-container">
+                <canvas id="canvas"></canvas>
+                <div id="canvas-info">
+                    <p>👆 Load a background or start placing assets</p>
+                    <p style="font-size: 12px; margin-top: 8px;">
+                        <strong>Controls:</strong><br>
+                        • Click object to select<br>
+                        • Drag to move<br>
+                        • Arrow keys to nudge (Shift = 10px)<br>
+                        • Delete/Backspace to remove
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Panel: Properties -->
+            <div id="properties-panel">
+                <h3>Properties</h3>
+                <div id="properties-content">
+                    <p style="color: #999;">Select an object to view properties</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <span id="status-text">✨ Ready to create! Load a background or add an asset to begin.</span>
+            <span id="mouse-coords">X: 0, Y: 0</span>
+            <span id="object-count">Objects: 0</span>
+        </div>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="background-input" accept="image/*" style="display: none;">
+    <input type="file" id="asset-input" accept="image/*" multiple style="display: none;">
+    <input type="file" id="project-input" accept=".json" style="display: none;">
+
+    <script src="editor.js"></script>
+</body>
+</html>
