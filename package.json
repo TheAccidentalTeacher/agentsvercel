@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "game-level-editor",
   "version": "1.3.0",
   "description": "Universal Game Level Editor with AI Assistant",
@@ -7,17 +8,22 @@
     "dev": "node server.js",
     "start": "node server.js"
   },
-  "keywords": ["game", "level-editor", "ai", "claude"],
+  "keywords": [
+    "game",
+    "level-editor",
+    "ai",
+    "claude"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "dotenv": "^16.3.1"
   },
   "devDependencies": {
-    "@langchain/langgraph": "^0.2.0",
-    "@langchain/core": "^0.3.0",
-    "@langchain/anthropic": "^0.3.0",
-    "@langchain/openai": "^0.3.0"
+    "@langchain/anthropic": "^0.3.33",
+    "@langchain/core": "^0.3.79",
+    "@langchain/langgraph": "^0.2.74",
+    "@langchain/openai": "^0.3.17"
   },
   "comments": {
     "devDependencies": "LangGraph.js dependencies for planned v2.0.0 multi-agent system. Install with: npm install --save-dev @langchain/langgraph @langchain/core @langchain/anthropic @langchain/openai"

@@ -370,7 +370,10 @@ class AgentMemory {
     }
 }
 
-// Export for use in other files
+// Export for both ESM and CommonJS
+export default AgentMemory;
+export { AgentMemory };
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AgentMemory;
 }
