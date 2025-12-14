@@ -1470,19 +1470,23 @@ button:active {
     font-weight: 500;
     transition: all 0.2s ease;
     white-space: nowrap;
+    flex: 1;
+    min-width: 140px;
 }
 
 .mode-btn:hover {
     border-color: #007acc;
     background: #3c3c3c;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 122, 204, 0.2);
 }
 
 .mode-btn.active {
-    border-color: #007acc;
+    border-color: #0088dd;
     background: #007acc;
-    color: white;
-    box-shadow: 0 0 12px rgba(0, 122, 204, 0.3);
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(0, 136, 221, 0.5);
+    transform: scale(1.02);
 }
 
 /* Persona Selector */

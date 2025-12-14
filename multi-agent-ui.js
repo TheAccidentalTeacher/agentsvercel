@@ -180,6 +180,12 @@ class MultiAgentUIController {
       });
     });
     log('SUCCESS', `Attached click listeners to ${modeBtns.length} mode buttons`);
+    
+    // Set first mode as active by default if none selected
+    if (modeBtns.length > 0 && !this.currentMode) {
+      log('DEBUG', 'Initializing default mode');
+      this.selectMode(modeBtns[0].dataset.mode);
+    }
 
     // Persona checkboxes
     const personaCheckboxes = document.querySelectorAll('input[type="checkbox"][name="persona"]');

@@ -549,6 +549,31 @@
                         });
                         console.log('%c[SUCCESS] Manual listener attached to Execute Workflow button', 'color: #00FF00; font-weight: bold');
                     }
+                    // Fallback for Mode buttons
+                    const modeBtns = document.querySelectorAll('.mode-btn');
+                    console.log(`%c[FALLBACK] Found ${modeBtns.length} mode buttons`, 'color: #0088FF; font-weight: bold');
+                    
+                    // Set first mode as default active
+                    if (modeBtns.length > 0) {
+                        modeBtns[0].classList.add('active');
+                        console.log(`  ✓ Set first mode (${modeBtns[0].dataset.mode}) as active`);
+                    }
+                    
+                    modeBtns.forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            console.log(`%c[FALLBACK] Mode button clicked: ${btn.dataset.mode}`, 'color: #0088FF; font-weight: bold');
+                            
+                            // Remove active from all
+                            modeBtns.forEach(b => b.classList.remove('active'));
+                            // Add active to clicked
+                            btn.classList.add('active');
+                            
+                            console.log(`  ✓ Mode changed to: ${btn.dataset.mode}`);
+                            console.log(`%c[SUCCESS] Mode button updated`, 'color: #00FF00; font-weight: bold');
+                        });
+                    });
+                    console.log('%c[SUCCESS] Manual listeners attached to all mode buttons', 'color: #00FF00; font-weight: bold');
+                    
                 }
             }, 500);
         });
