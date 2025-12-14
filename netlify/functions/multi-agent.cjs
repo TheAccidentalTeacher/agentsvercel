@@ -51,16 +51,16 @@ const formatResponse = (result, executionTime) => ({
   data: {
     question: result.question,
     mode: result.mode,
-    personas: result.personas,
-    responses: result.personaResponses.map(r => ({
+    personas: result.selectedPersonas,
+    responses: (result.personaResponses || []).map(r => ({
       persona: r.persona,
-      content: r.response
+      response: r.response || r.content
     })),
-    synthesis: result.synthesisResult,
+    synthesis: result.synthesis || result.synthesisResult,
     metadata: {
       executionTime,
-      agentsExecuted: result.personas.length,
-      timestamp: new Date().toISOString()
+      agentsExecuted: (result.selectedPersonas || []).length,
+      timestamp: result.metadata?.timestamp || new Date().toISOString()
     }
   }
 });
@@ -156,12 +156,12 @@ exports.handler = async (event, context) => {
     
     // Dynamic import of ESM module
     const { executeMultiAgentWorkflow } = await import('../../langgraph-agents.js');
-    const result = await executeMultiAgentWorkflow(question, mode, personas);
+    const result = await executeMultiAgentWorkflow(question, personas, mode);
     
     const executionTime = Date.now() - startTime;
     console.log(`[API] ✅ Workflow completed in ${executionTime}ms`);
-    console.log(`[API] ✅ Agents executed: ${result.personas.length}`);
-    console.log(`[API] ✅ Synthesis generated: ${result.synthesisResult.length} characters`);
+    console.log(`[API] ✅ Agents executed: ${result.selectedPersonas?.length || 0}`);
+    console.log(`[API] ✅ Synthesis generated: ${result.synthesis?.length || 0} characters`);
 
     // Format and return response
     const response = formatResponse(result, executionTime);
