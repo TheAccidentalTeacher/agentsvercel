@@ -36,9 +36,11 @@ This document serves as a master index for loading project context into AI conve
 ## Quick Context Summary
 
 ### Who You Are
-- Educator developing Catholic classical education tools
-- Focus on Gen-Alpha engagement through gamification
-- Building AI-assisted worksheet/workbook creation system
+- Reformed Baptist Christian homeschool educator and father
+- Building AI-enhanced homeschool platform for Christian families
+- Focus on meeting kids where they are + biblical worldview integration
+- Strong convictions: Spurgeon, MacArthur, Piper, Sproul (Reformed theology)
+- This project is FOR YOU - reflects YOUR worldview and values
 
 ### What We're Building
 1. **Multi-Agent AI Consortium** - 12 specialized AI personas working together
@@ -144,7 +146,7 @@ Enhance agent-memory.js to include:
 **Paste this into a new conversation:**
 
 ```
-I'm continuing work on the Catholic Classical Education AI Consortium project. 
+I'm continuing work on the Christian Homeschool AI Consortium project. 
 
 Quick context:
 - Building multi-agent AI system with 12 specialized personas

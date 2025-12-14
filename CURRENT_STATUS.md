@@ -3,6 +3,7 @@
 **Date**: December 14, 2025  
 **Version**: v1.8.0 - Deep Research Engine (Phase 6 Day 2 Complete)
 **Current Focus**: AI Consortium & Research System (Game Editor now secondary)
+**Theological Foundation**: Reformed Baptist (Spurgeon, MacArthur, Piper, Sproul)
 
 ---
 
