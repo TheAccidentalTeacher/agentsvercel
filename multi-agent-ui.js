@@ -81,21 +81,17 @@ class MultiAgentUIController {
   init() {
     log('INFO', '📍 init() called');
     
-    // Check if multi-agent section exists
-    const section = document.getElementById('multi-agent-section');
-    if (!section) {
-      log('ERROR', 'Multi-agent section not found in DOM!');
-      log('DEBUG', 'Searching for element by id: multi-agent-section');
-      const allDivs = document.querySelectorAll('[id*="multi"]');
-      log('DEBUG', `Found ${allDivs.length} elements with "multi" in id:`, Array.from(allDivs).map(d => d.id));
+    // Check if modal exists
+    const modal = document.getElementById('multi-agent-modal');
+    if (!modal) {
+      log('ERROR', 'Multi-agent modal not found in DOM!');
       return;
     }
     
-    log('SUCCESS', 'Multi-agent section found in DOM', section);
-    log('DEBUG', `Section display style: ${section.style.display}`);
+    log('SUCCESS', 'Multi-agent modal found in DOM');
     
     this.setupEventListeners();
-    this.setupToggleButtons();
+    this.setupModalButtons();
     this.loadStoredPreferences();
     log('SUCCESS', '✅ Multi-Agent UI Controller fully initialized');
     
@@ -117,42 +113,48 @@ class MultiAgentUIController {
     }
   }
 
-  setupToggleButtons() {
-    log('EVENT', '⚙️ Setting up toggle buttons');
+  setupModalButtons() {
+    log('EVENT', '⚙️ Setting up modal buttons');
     
-    // Show multi-agent button
+    const modal = document.getElementById('multi-agent-modal');
+    const closeBtn = document.getElementById('modal-close');
     const showBtn = document.getElementById('show-multi-agent');
+    
+    // Show modal
     if (showBtn) {
-      log('DEBUG', 'Found show-multi-agent button:', showBtn);
+      log('DEBUG', 'Found show-multi-agent button');
       showBtn.addEventListener('click', (e) => {
-        log('EVENT', '🤖 CLICKED: Show Multi-Agent Button');
-        const section = document.getElementById('multi-agent-section');
-        if (section) {
-          section.style.display = 'block';
-          log('SUCCESS', 'Multi-agent section shown');
-          log('DEBUG', `New display style: ${section.style.display}`);
+        log('EVENT', '🤖 CLICKED: Show Multi-Agent Modal');
+        if (modal) {
+          modal.style.display = 'flex';
+          log('SUCCESS', 'Multi-agent modal shown');
           this.logSystemState();
-        } else {
-          log('ERROR', 'Could not find multi-agent-section to show!');
         }
       });
       log('SUCCESS', 'Show button listener attached');
-    } else {
-      log('ERROR', 'show-multi-agent button not found!');
     }
-
-    // Hide multi-agent button
-    const hideBtn = document.getElementById('toggle-multi-agent');
-    if (hideBtn) {
-      log('DEBUG', 'Found toggle-multi-agent (hide) button:', hideBtn);
-      hideBtn.addEventListener('click', (e) => {
-        log('EVENT', '👁️ CLICKED: Hide Multi-Agent Button');
-        const section = document.getElementById('multi-agent-section');
-        if (section) {
-          section.style.display = 'none';
-          log('SUCCESS', 'Multi-agent section hidden');
-          log('DEBUG', `New display style: ${section.style.display}`);
+    
+    // Close modal
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        log('EVENT', '👁️ CLICKED: Close Multi-Agent Modal');
+        if (modal) {
+          modal.style.display = 'none';
+          log('SUCCESS', 'Multi-agent modal hidden');
         }
+      });
+      log('SUCCESS', 'Close button listener attached');
+    }
+    
+    // Close modal when clicking outside
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          log('EVENT', 'Clicked outside modal - closing');
+          modal.style.display = 'none';
+        }
+      });
+    }        }
       });
       log('SUCCESS', 'Hide button listener attached');
     } else {
@@ -219,22 +221,22 @@ class MultiAgentUIController {
       log('ERROR', 'Question input (.question-input) not found!');
     }
 
-    // Execute button
-    const executeBtn = document.getElementById('execute-workflow');
+    // Execute button (works for both modal and sidebar)
+    const executeBtn = document.getElementById('modal-execute-workflow') || document.getElementById('execute-workflow');
     if (executeBtn) {
-      log('DEBUG', 'Execute button found', executeBtn);
+      log('DEBUG', 'Execute button found');
       executeBtn.addEventListener('click', () => {
         log('EVENT', '🚀 CLICKED Execute Workflow Button');
         this.executeWorkflow();
       });
       log('SUCCESS', 'Attached listener to execute button');
     } else {
-      log('ERROR', 'Execute button (#execute-workflow) not found!');
+      log('ERROR', 'Execute button not found!');
     }
 
-    // Select All / Clear All buttons
-    const selectAllBtn = document.querySelector('.persona-select-all');
-    const clearAllBtn = document.querySelector('.persona-clear-all');
+    // Select All / Clear All buttons (works for both modal and sidebar)
+    const selectAllBtn = document.getElementById('modal-select-all') || document.querySelector('.persona-select-all');
+    const clearAllBtn = document.getElementById('modal-clear-all') || document.querySelector('.persona-clear-all');
     
     if (selectAllBtn) {
       selectAllBtn.addEventListener('click', () => {

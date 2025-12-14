@@ -583,5 +583,93 @@
             }, 500);
         });
     </script>
+
+    <!-- Multi-Agent Consortium Modal -->
+    <div id="multi-agent-modal" class="multi-agent-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🤖 The Consortium</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Mode Selector -->
+                <div class="multi-agent-mode-selector">
+                    <button class="mode-btn" data-mode="panel">📋 Panel Discussion</button>
+                    <button class="mode-btn" data-mode="consensus">🗳️ Consensus Voting</button>
+                    <button class="mode-btn" data-mode="debate">💬 Debate</button>
+                </div>
+
+                <!-- Split Layout: Left (Input/Selection) and Right (Results) -->
+                <div class="modal-split">
+                    <!-- Left Panel: Input & Selection -->
+                    <div class="modal-left">
+                        <!-- Persona Selector -->
+                        <div class="multi-agent-persona-selector">
+                            <h3>Specialists</h3>
+                            <div class="persona-categories">
+                                <div class="category">
+                                    <h4>Education</h4>
+                                    <label><input type="checkbox" name="persona" value="master-teacher"> 👨‍🏫 Master Teacher</label>
+                                    <label><input type="checkbox" name="persona" value="classical-educator"> 📖 Classical Educator</label>
+                                </div>
+                                <div class="category">
+                                    <h4>Strategy</h4>
+                                    <label><input type="checkbox" name="persona" value="strategist"> 📊 Strategist</label>
+                                    <label><input type="checkbox" name="persona" value="theologian"> ⛪ Theologian</label>
+                                </div>
+                                <div class="category">
+                                    <h4>Technical</h4>
+                                    <label><input type="checkbox" name="persona" value="technical-architect"> 🏗️ Technical Architect</label>
+                                    <label><input type="checkbox" name="persona" value="debugger"> 🐛 Debugger</label>
+                                </div>
+                                <div class="category">
+                                    <h4>Creative</h4>
+                                    <label><input type="checkbox" name="persona" value="writer"> ✍️ Writer</label>
+                                    <label><input type="checkbox" name="persona" value="ux-designer"> 🎨 UX Designer</label>
+                                </div>
+                                <div class="category">
+                                    <h4>Analysis</h4>
+                                    <label><input type="checkbox" name="persona" value="analyst"> 🔬 Analyst</label>
+                                    <label><input type="checkbox" name="persona" value="gen-alpha-expert"> 🎮 Gen-Alpha Expert</label>
+                                </div>
+                                <div class="category">
+                                    <h4>Marketing</h4>
+                                    <label><input type="checkbox" name="persona" value="marketing-strategist"> 📢 Marketing Strategist</label>
+                                    <label><input type="checkbox" name="persona" value="game-designer"> 🎯 Game Designer</label>
+                                </div>
+                            </div>
+                            <div class="persona-count">None selected</div>
+                            <div class="persona-buttons">
+                                <button id="modal-select-all" class="persona-select-all btn-secondary">✓ Select All</button>
+                                <button id="modal-clear-all" class="persona-clear-all btn-secondary">✗ Clear All</button>
+                            </div>
+                        </div>
+
+                        <!-- Question Input -->
+                        <div class="multi-agent-input-area">
+                            <textarea 
+                                class="question-input" 
+                                placeholder="Ask the Consortium a question... (Shift+Enter for new line, Enter to execute)"
+                                rows="4"
+                            ></textarea>
+                            <div class="input-controls">
+                                <span class="char-count">0 / 2000</span>
+                                <button id="modal-execute-workflow" class="execute-btn">▶️ Execute Workflow</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Results -->
+                    <div class="modal-right">
+                        <div class="multi-agent-results">
+                            <p style="text-align: center; color: #888; padding: 20px;">
+                                Results will appear here after executing a workflow
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

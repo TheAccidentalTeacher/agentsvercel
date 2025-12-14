@@ -1958,6 +1958,172 @@ button:active {
     animation: fadeIn 0.3s ease-out;
 }
 
+/* Multi-Agent Modal */
+.multi-agent-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.multi-agent-modal .modal-content {
+    background: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    border-radius: 12px;
+    width: 90vw;
+    height: 90vh;
+    max-width: 1400px;
+    max-height: 800px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+.multi-agent-modal .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid #3c3c3c;
+    background: #252526;
+    border-radius: 12px 12px 0 0;
+}
+
+.multi-agent-modal .modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: #cccccc;
+}
+
+.multi-agent-modal .modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.multi-agent-modal .modal-close:hover {
+    background: #3c3c3c;
+    color: #cccccc;
+}
+
+.multi-agent-modal .modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    overflow: hidden;
+}
+
+.multi-agent-modal .multi-agent-mode-selector {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.multi-agent-modal .mode-btn {
+    padding: 10px 16px;
+    border: 2px solid #3c3c3c;
+    border-radius: 6px;
+    background: #2d2d30;
+    color: #cccccc;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    flex: 1;
+    min-width: 120px;
+}
+
+.multi-agent-modal .mode-btn:hover {
+    border-color: #007acc;
+    background: #3c3c3c;
+    transform: translateY(-2px);
+}
+
+.multi-agent-modal .mode-btn.active {
+    border-color: #0088dd;
+    background: #007acc;
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(0, 136, 221, 0.5);
+    transform: scale(1.02);
+}
+
+/* Split Layout */
+.modal-split {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.modal-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.modal-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.modal-left .multi-agent-persona-selector {
+    flex: 1;
+    max-height: none;
+    overflow-y: auto;
+}
+
+.modal-left .multi-agent-input-area {
+    flex-shrink: 0;
+}
+
+.modal-right .multi-agent-results {
+    flex: 1;
+    max-height: none;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* Responsive Modal */
+@media (max-width: 1024px) {
+    .modal-split {
+        grid-template-columns: 1fr;
+    }
+    
+    .multi-agent-modal .modal-content {
+        width: 95vw;
+        height: 95vh;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 900px) {
     .responses-container {
