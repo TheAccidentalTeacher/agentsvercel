@@ -129,6 +129,29 @@ export function getPersonaInfo(personaName) {
   };
 }
 
+/**
+ * Convert persona display name to file-safe name
+ */
+function getPersonaFileNameFromDisplay(displayName) {
+  // Create reverse mapping
+  const displayToFile = {
+    "Master Teacher": "master-teacher",
+    "Technical Architect": "technical-architect",
+    "Strategist": "strategist",
+    "Theologian": "theologian",
+    "Writer": "writer",
+    "Analyst": "analyst",
+    "Debugger": "debugger",
+    "Classical Educator": "classical-educator",
+    "Gen-Alpha Expert": "gen-alpha-expert",
+    "UX Designer": "ux-designer",
+    "Marketing Strategist": "marketing-strategist",
+    "Game Designer": "game-designer"
+  };
+
+  return displayToFile[displayName] || displayName.toLowerCase().replace(/\s+/g, "-");
+}
+
 // ============================================================================
 // SECTION 3: LLM Model Selection
 // ============================================================================
@@ -269,9 +292,28 @@ Respond in JSON format:
       reasoning: "Default selection"
     };
 
+    // Convert display names to file-safe names
+    const safePersonas = (decision.selectedPersonas || []).map(name => {
+      // Clean: keep only alphanumeric, hyphens, and spaces
+      let cleaned = name
+        .replace(/[^\w\s-]/g, '') // Remove all non-word characters except hyphen/space (removes emojis)
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .toLowerCase()
+        .replace(/^[-\s]+/, '') // Remove leading dashes/spaces
+        .trim();
+
+      // If it's already a file-safe name (in allPersonas), keep it
+      if (allPersonas.includes(cleaned)) {
+        return cleaned;
+      }
+      
+      // Otherwise convert from display name
+      return getPersonaFileNameFromDisplay(cleaned);
+    });
+
     return {
       routerDecision: decision,
-      selectedPersonas: decision.selectedPersonas,
+      selectedPersonas: safePersonas,
       mode: decision.mode
     };
   } catch (error) {
@@ -285,13 +327,36 @@ Respond in JSON format:
 }
 
 // ============================================================================
-// SECTION 6: Synthesizer Agent
+// SECTION 6: Orchestrator Agent
+// ============================================================================
+
+/**
+ * Orchestrator manages conversation flow between agents
+ * Handles timeouts, token limits, and flow control
+ */
+export async function orchestratorAgent(state) {
+  // Log execution details
+  console.log(`\n🎭 Orchestrating: ${state.mode} mode`);
+  console.log(`📋 Personas: ${state.selectedPersonas.join(", ")}`);
+  console.log(`❓ Question: "${state.question.substring(0, 60)}..."`);
+  
+  return state;  // Pass-through, orchestration happens at graph level
+}
+
+// ============================================================================
+// SECTION 7: Synthesizer Agent
 // ============================================================================
 
 /**
  * Synthesizer combines multiple persona responses into coherent answer
  */
 export async function synthesizerAgent(state) {
+  if (!state.personaResponses || state.personaResponses.length === 0) {
+    return {
+      synthesisResult: "No responses to synthesize."
+    };
+  }
+
   const llm = createLLMClient("gpt-4o");
 
   const personaResponses = state.personaResponses
@@ -301,7 +366,7 @@ export async function synthesizerAgent(state) {
     )
     .join("\n\n---\n\n");
 
-  const synthesisPrompt = `You are synthesizing perspectives from multiple expert advisors.
+  const synthesisPrompt = `You are synthesizing perspectives from multiple expert advisors on The Consortium.
 
 Original Question: "${state.question}"
 
@@ -310,12 +375,12 @@ ${personaResponses}
 
 Create a unified synthesis that:
 1. Highlights key agreements
-2. Acknowledges valuable disagreements
-3. Provides actionable guidance
+2. Acknowledges valuable disagreements  
+3. Synthesizes into actionable guidance
 4. Maintains the Consortium voice (collaborative, expert, welcoming)
 5. Cites which experts contributed each insight
 
-Format with clear sections and emphasis on most important points.`;
+Use clear markdown formatting with emphasis on most important points.`;
 
   try {
     const response = await llm.invoke([
@@ -331,10 +396,6 @@ Format with clear sections and emphasis on most important points.`;
     };
   }
 }
-
-// ============================================================================
-// SECTION 7: Moderator Agent (for debates)
-// ============================================================================
 
 /**
  * Moderator facilitates debate between personas
@@ -408,20 +469,28 @@ Keep it brief and focused.`;
 }
 
 // ============================================================================
-// SECTION 8: Graph Builders
+// SECTION 9: Graph Builders with Error Handling
 // ============================================================================
 
 /**
- * Build panel discussion workflow
+ * Build panel discussion workflow (sequential personas)
  */
 export function buildPanelGraph(selectedPersonas) {
   const workflow = new StateGraph(MultiAgentState);
 
-  // Add router node
-  workflow.addNode("router", routerAgent);
+  // Add orchestrator node
+  workflow.addNode("orchestrator", orchestratorAgent);
 
-  // Add persona nodes
-  selectedPersonas.forEach((persona) => {
+  // Add persona nodes - safely handle persona names
+  const safePersonas = selectedPersonas.map(p => {
+    // Ensure it's a file-safe name
+    if (allPersonas.includes(p)) {
+      return p;
+    }
+    return getPersonaFileNameFromDisplay(p);
+  });
+
+  safePersonas.forEach((persona) => {
     workflow.addNode(persona, createPersonaAgent(persona));
   });
 
@@ -429,35 +498,44 @@ export function buildPanelGraph(selectedPersonas) {
   workflow.addNode("synthesizer", synthesizerAgent);
 
   // Define edges
-  workflow.addEdge(START, "router");
+  workflow.addEdge(START, "orchestrator");
 
-  // Router to personas (sequential)
-  selectedPersonas.forEach((persona, index) => {
-    if (index === 0) {
-      workflow.addEdge("router", persona);
-    } else {
-      workflow.addEdge(selectedPersonas[index - 1], persona);
+  // Orchestrator to first persona
+  if (safePersonas.length > 0) {
+    workflow.addEdge("orchestrator", safePersonas[0]);
+
+    // Sequential chain through personas
+    for (let i = 0; i < safePersonas.length - 1; i++) {
+      workflow.addEdge(safePersonas[i], safePersonas[i + 1]);
     }
-  });
 
-  // Last persona to synthesizer
-  workflow.addEdge(selectedPersonas[selectedPersonas.length - 1], "synthesizer");
+    // Last persona to synthesizer
+    workflow.addEdge(safePersonas[safePersonas.length - 1], "synthesizer");
+  }
+
   workflow.addEdge("synthesizer", END);
 
   return workflow.compile();
 }
 
 /**
- * Build consensus discussion workflow
+ * Build consensus discussion workflow (parallel execution)
  */
 export function buildConsensusGraph(selectedPersonas) {
   const workflow = new StateGraph(MultiAgentState);
 
-  // Add router
-  workflow.addNode("router", routerAgent);
+  // Add orchestrator node
+  workflow.addNode("orchestrator", orchestratorAgent);
 
   // Add personas (parallel execution)
-  selectedPersonas.forEach((persona) => {
+  const safePersonas = selectedPersonas.map(p => {
+    if (allPersonas.includes(p)) {
+      return p;
+    }
+    return getPersonaFileNameFromDisplay(p);
+  });
+
+  safePersonas.forEach((persona) => {
     workflow.addNode(persona, createPersonaAgent(persona));
   });
 
@@ -465,13 +543,15 @@ export function buildConsensusGraph(selectedPersonas) {
   workflow.addNode("synthesizer", synthesizerAgent);
 
   // Define edges
-  workflow.addEdge(START, "router");
-  selectedPersonas.forEach((persona) => {
-    workflow.addEdge("router", persona);
+  workflow.addEdge(START, "orchestrator");
+
+  // Orchestrator connects to all personas (parallel)
+  safePersonas.forEach((persona) => {
+    workflow.addEdge("orchestrator", persona);
   });
 
-  // All personas to synthesizer
-  selectedPersonas.forEach((persona) => {
+  // All personas connect to synthesizer
+  safePersonas.forEach((persona) => {
     workflow.addEdge(persona, "synthesizer");
   });
 
@@ -481,20 +561,24 @@ export function buildConsensusGraph(selectedPersonas) {
 }
 
 /**
- * Build debate workflow
+ * Build debate workflow (alternating responses)
  */
 export function buildDebateGraph(personaA, personaB) {
   const workflow = new StateGraph(MultiAgentState);
 
-  workflow.addNode("router", routerAgent);
-  workflow.addNode(personaA, createPersonaAgent(personaA));
-  workflow.addNode(personaB, createPersonaAgent(personaB));
+  // Ensure file-safe names
+  const safeA = allPersonas.includes(personaA) ? personaA : getPersonaFileNameFromDisplay(personaA);
+  const safeB = allPersonas.includes(personaB) ? personaB : getPersonaFileNameFromDisplay(personaB);
+
+  workflow.addNode("orchestrator", orchestratorAgent);
+  workflow.addNode(safeA, createPersonaAgent(safeA));
+  workflow.addNode(safeB, createPersonaAgent(safeB));
   workflow.addNode("synthesizer", synthesizerAgent);
 
-  workflow.addEdge(START, "router");
-  workflow.addEdge("router", personaA);
-  workflow.addEdge(personaA, personaB);
-  workflow.addEdge(personaB, "synthesizer");
+  workflow.addEdge(START, "orchestrator");
+  workflow.addEdge("orchestrator", safeA);
+  workflow.addEdge(safeA, safeB);
+  workflow.addEdge(safeB, "synthesizer");
   workflow.addEdge("synthesizer", END);
 
   return workflow.compile();
@@ -515,6 +599,8 @@ export async function executeMultiAgentWorkflow(
   includeMemory = true
 ) {
   const startTime = new Date();
+  console.log(`\n🚀 Multi-Agent Workflow Starting`);
+  console.log(`⏱️  Time: ${startTime.toISOString()}`);
 
   try {
     // If no personas selected or mode is auto, use router to decide
@@ -522,6 +608,8 @@ export async function executeMultiAgentWorkflow(
     let actualMode = mode;
 
     if (actualPersonas.length === 0 || actualMode === "auto") {
+      console.log(`\n🧭 Router deciding personas and mode...`);
+      
       const initialState = {
         question: question,
         selectedPersonas: [],
@@ -540,16 +628,29 @@ export async function executeMultiAgentWorkflow(
       const routerResult = await routerAgent(initialState);
       actualPersonas = routerResult.selectedPersonas;
       actualMode = routerResult.mode;
+      
+      console.log(`✅ Router selected: ${actualMode} mode with ${actualPersonas.length} personas`);
+      console.log(`   Personas: ${actualPersonas.join(", ")}`);
+    }
+
+    // Validate personas
+    if (!actualPersonas || actualPersonas.length === 0) {
+      throw new Error("No personas selected for discussion");
     }
 
     // Create appropriate graph based on mode
     let graph;
+    console.log(`\n🏗️  Building ${actualMode} workflow graph...`);
+    
     if (actualMode === "debate" && actualPersonas.length >= 2) {
       graph = buildDebateGraph(actualPersonas[0], actualPersonas[1]);
+      console.log(`   Debate mode: ${actualPersonas[0]} vs ${actualPersonas[1]}`);
     } else if (actualMode === "consensus") {
       graph = buildConsensusGraph(actualPersonas);
+      console.log(`   Consensus mode: ${actualPersonas.length} agents voting`);
     } else {
       graph = buildPanelGraph(actualPersonas);
+      console.log(`   Panel mode: ${actualPersonas.length} sequential responses`);
     }
 
     // Prepare initial state
@@ -569,11 +670,17 @@ export async function executeMultiAgentWorkflow(
     };
 
     // Execute graph
+    console.log(`\n▶️  Executing workflow...`);
     const result = await graph.invoke(initialState);
 
     // Calculate execution time
     const endTime = new Date();
     const executionTime = (endTime - startTime) / 1000;
+
+    console.log(`\n✅ Workflow Complete!`);
+    console.log(`⏱️  Execution Time: ${executionTime.toFixed(2)}s`);
+    console.log(`📊 Responses: ${result.personaResponses.length}`);
+    console.log(`🎯 Synthesis: ${result.synthesisResult.substring(0, 80)}...`);
 
     return {
       success: true,
@@ -585,11 +692,12 @@ export async function executeMultiAgentWorkflow(
       metadata: {
         executionTime: `${executionTime.toFixed(2)}s`,
         agentsExecuted: result.executionMetadata.agentsExecuted,
+        responseCount: result.personaResponses.length,
         timestamp: endTime.toISOString()
       }
     };
   } catch (error) {
-    console.error("Multi-agent workflow error:", error);
+    console.error(`\n❌ Workflow Error: ${error.message}`);
     return {
       success: false,
       error: error.message,
