@@ -12,7 +12,7 @@
  * - Source attribution
  */
 
-export class SearchOrchestrator {
+class SearchOrchestrator {
   constructor(options = {}) {
     this.serpApiKey = options.serpApiKey || process.env.SERP_API_KEY;
     this.tavilyApiKey = options.tavilyApiKey || process.env.TAVILY_API_KEY;

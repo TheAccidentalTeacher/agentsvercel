@@ -8,7 +8,7 @@
  * Returns: { results, stats }
  */
 
-const { SearchOrchestrator } = require('../../research/search-orchestrator.js');
+const { SearchOrchestrator } = require('../../research/search-orchestrator.cjs');
 
 exports.handler = async (event, context) => {
   // Set CORS headers
