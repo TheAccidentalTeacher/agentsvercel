@@ -12,7 +12,10 @@ require('dotenv').config();
 const PORT = 8888;
 
 // Import the chat function handler
-const chatFunction = require('./netlify/functions/chat');
+const chatFunction = require('./netlify/functions/chat.cjs');
+
+// Import the multi-agent function handler
+const multiAgentFunction = require('./netlify/functions/multi-agent.cjs');
 
 // MIME types for static files
 const MIME_TYPES = {
@@ -105,6 +108,63 @@ const server = http.createServer(async (req, res) => {
       
       return;
     }
+
+    // Multi-Agent endpoint
+    if (functionPath === 'multi-agent') {
+      console.log(`[${requestId}] 🤖 Routing to multi-agent function`);
+      
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+        console.log(`[${requestId}] Received ${chunk.length} bytes`);
+      });
+      
+      req.on('end', async () => {
+        console.log(`[${requestId}] ✓ Request body complete (${body.length} bytes)`);
+        
+        try {
+          // Create Netlify-compatible event object
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const context = {};
+          
+          console.log(`[${requestId}] 📤 Calling multi-agent function handler...`);
+          const result = await multiAgentFunction.handler(event, context);
+          
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ Function completed in ${duration}ms`);
+          console.log(`[${requestId}] Status:`, result.statusCode);
+          console.log(`[${requestId}] Response body length:`, result.body?.length || 0);
+          
+          // Send response
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+          
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`[${requestId}] ❌ Function error after ${duration}ms:`, error);
+          console.error(`[${requestId}] Error stack:`, error.stack);
+          
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({
+            error: 'Internal server error',
+            message: error.message,
+            requestId: requestId
+          }));
+        }
+      });
+      
+      return;
+    }
   }
 
   // Serve static files
@@ -149,6 +209,8 @@ server.listen(PORT, () => {
   console.log('📁 Serving static files from current directory');
   console.log('🔧 API endpoint:     /.netlify/functions/chat');
   console.log('🔧 API endpoint:     /api/chat');
+  console.log('🔧 API endpoint:     /.netlify/functions/multi-agent');
+  console.log('🔧 API endpoint:     /api/multi-agent');
   console.log('');
   console.log('Press Ctrl+C to stop');
   console.log('='.repeat(80) + '\n');

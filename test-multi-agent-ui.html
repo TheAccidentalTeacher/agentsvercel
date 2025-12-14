@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent UI Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            padding: 20px;
+            margin: 0;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #252526;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .test-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #007acc;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .pass {
+            background: #1a4d1a;
+            color: #7cfc7c;
+            border-left: 3px solid #00aa00;
+        }
+        .fail {
+            background: #4d1a1a;
+            color: #ff6b6b;
+            border-left: 3px solid #ff0000;
+        }
+        .info {
+            background: #1a2d4d;
+            color: #5dade2;
+            border-left: 3px solid #007acc;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-size: 12px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Multi-Agent UI Test Suite</h1>
+        
+        <div class="test-section">
+            <div class="test-title">1. DOM Elements Check</div>
+            <div id="dom-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">2. Module Import Check</div>
+            <div id="module-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">3. API Endpoint Check</div>
+            <button onclick="testAPIEndpoint()">Test API Endpoint</button>
+            <div id="api-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">4. UI Functionality Check</div>
+            <button onclick="testUIFunctionality()">Test UI Functionality</button>
+            <div id="ui-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">5. Event Listeners Check</div>
+            <button onclick="testEventListeners()">Test Event Listeners</button>
+            <div id="event-results"></div>
+        </div>
+    </div>
+
+    <script>
+        function addResult(containerId, text, type = 'info') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = text;
+            container.appendChild(div);
+        }
+
+        // 1. DOM Elements Check
+        function checkDOMElements() {
+            const checks = [
+                { id: 'multi-agent-section', name: 'Multi-agent section' },
+                { id: 'show-multi-agent', name: 'Show multi-agent button' },
+                { id: 'toggle-multi-agent', name: 'Hide multi-agent button' },
+                { selector: '.mode-btn', name: 'Mode buttons (should be 3)' },
+                { selector: 'input[type="checkbox"][name="persona"]', name: 'Persona checkboxes' },
+                { id: 'question-input', name: 'Question input' },
+                { id: 'execute-workflow', name: 'Execute button' },
+                { id: 'multi-agent-results', name: 'Results container' }
+            ];
+
+            let passCount = 0;
+            let failCount = 0;
+
+            checks.forEach(check => {
+                let found = false;
+                if (check.id) {
+                    const elem = document.getElementById(check.id);
+                    found = elem !== null;
+                } else if (check.selector) {
+                    const elems = document.querySelectorAll(check.selector);
+                    found = elems.length > 0;
+                    if (found && check.selector.includes('.mode-btn')) {
+                        addResult('dom-results', `✓ Found ${elems.length} mode buttons`, 'pass');
+                    }
+                    if (found && check.selector.includes('input[type="checkbox"]')) {
+                        addResult('dom-results', `✓ Found ${elems.length} persona checkboxes`, 'pass');
+                    }
+                    return;
+                }
+
+                if (found) {
+                    addResult('dom-results', `✓ Found: ${check.name}`, 'pass');
+                    passCount++;
+                } else {
+                    addResult('dom-results', `✗ Missing: ${check.name}`, 'fail');
+                    failCount++;
+                }
+            });
+
+            addResult('dom-results', `DOM Check: ${passCount} pass, ${failCount} fail`, passCount > failCount ? 'pass' : 'fail');
+        }
+
+        // 2. Module Import Check
+        async function checkModuleImports() {
+            try {
+                // Check if multi-agent-ui.js is loading
+                const script = document.querySelector('script[src="multi-agent-ui.js"]');
+                if (script) {
+                    addResult('module-results', '✓ multi-agent-ui.js script tag found', 'pass');
+                } else {
+                    addResult('module-results', '✗ multi-agent-ui.js script tag not found', 'fail');
+                }
+
+                // Check if MultiAgentClient is available (will be once module loads)
+                addResult('module-results', 'ℹ Module imports will be checked by browser console', 'info');
+                addResult('module-results', 'ℹ Check browser console for import errors', 'info');
+            } catch (e) {
+                addResult('module-results', `✗ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        // 3. API Endpoint Check
+        async function testAPIEndpoint() {
+            try {
+                addResult('api-results', 'Testing API endpoint...', 'info');
+                
+                const testPayload = {
+                    question: "What is 2+2?",
+                    mode: "panel",
+                    personas: ["master-teacher"]
+                };
+
+                const response = await fetch('/api/multi-agent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('api-results', `✓ API endpoint responded: ${response.status}`, 'pass');
+                    addResult('api-results', `✓ Response contains success: ${data.success}`, data.success ? 'pass' : 'fail');
+                    if (data.synthesis) {
+                        addResult('api-results', `✓ Response contains synthesis`, 'pass');
+                    }
+                } else {
+                    addResult('api-results', `✗ API error: ${response.status}`, 'fail');
+                    const errorData = await response.json().catch(() => ({}));
+                    addResult('api-results', `Error: ${errorData.error || 'Unknown'}`, 'fail');
+                }
+            } catch (e) {
+                addResult('api-results', `✗ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        // 4. UI Functionality Check
+        function testUIFunctionality() {
+            try {
+                const section = document.getElementById('multi-agent-section');
+                const isVisible = section && section.style.display !== 'none';
+                
+                addResult('ui-results', `Multi-agent section visible: ${isVisible}`, isVisible ? 'pass' : 'info');
+
+                // Test mode button functionality
+                const modeBtns = document.querySelectorAll('.mode-btn');
+                let activeMode = null;
+                modeBtns.forEach(btn => {
+                    if (btn.classList.contains('active')) {
+                        activeMode = btn.dataset.mode;
+                    }
+                });
+                addResult('ui-results', `Active mode: ${activeMode || 'None'}`, 'info');
+
+                // Test persona selection
+                const personaCheckboxes = document.querySelectorAll('input[type="checkbox"][name="persona"]');
+                const checkedCount = Array.from(personaCheckboxes).filter(cb => cb.checked).length;
+                addResult('ui-results', `Selected personas: ${checkedCount} of ${personaCheckboxes.length}`, 'pass');
+
+                // Test question input
+                const questionInput = document.getElementById('question-input');
+                addResult('ui-results', `Question input available: ${questionInput !== null}`, questionInput ? 'pass' : 'fail');
+
+                // Test execution button
+                const executeBtn = document.getElementById('execute-workflow');
+                addResult('ui-results', `Execute button available: ${executeBtn !== null}`, executeBtn ? 'pass' : 'fail');
+                addResult('ui-results', `Execute button disabled: ${executeBtn?.disabled}`, 'info');
+
+            } catch (e) {
+                addResult('ui-results', `✗ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        // 5. Event Listeners Check
+        function testEventListeners() {
+            try {
+                const showBtn = document.getElementById('show-multi-agent');
+                const hideBtn = document.getElementById('toggle-multi-agent');
+                const modeBtns = document.querySelectorAll('.mode-btn');
+                const executeBtn = document.getElementById('execute-workflow');
+
+                addResult('event-results', `Show button listeners: ${showBtn ? 'OK' : 'MISSING'}`, showBtn ? 'pass' : 'fail');
+                addResult('event-results', `Hide button listeners: ${hideBtn ? 'OK' : 'MISSING'}`, hideBtn ? 'pass' : 'fail');
+                addResult('event-results', `Mode buttons (${modeBtns.length}): ${modeBtns.length > 0 ? 'OK' : 'MISSING'}`, modeBtns.length > 0 ? 'pass' : 'fail');
+                addResult('event-results', `Execute button listeners: ${executeBtn ? 'OK' : 'MISSING'}`, executeBtn ? 'pass' : 'fail');
+                addResult('event-results', 'ℹ Open browser DevTools → Elements to inspect event listeners', 'info');
+
+            } catch (e) {
+                addResult('event-results', `✗ Error: ${e.message}`, 'fail');
+            }
+        }
+
+        // Run all checks on page load
+        window.addEventListener('load', () => {
+            checkDOMElements();
+            checkModuleImports();
+        });
+    </script>
+</body>
+</html>

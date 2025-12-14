@@ -111,6 +111,7 @@
                         <button id="ai-checkpoint" class="icon-btn" title="Save checkpoint">💾</button>
                         <button id="ai-restore" class="icon-btn" title="Restore checkpoint" style="display: none;">↩️</button>
                         <button id="ai-settings" class="icon-btn" title="Configure AI settings">⚙️</button>
+                        <button id="show-multi-agent" class="icon-btn" title="Show multi-agent consortium">🤖</button>
                         <button id="ai-clear" class="icon-btn" title="Clear conversation">🗑️</button>
                         <button id="ai-toggle" class="icon-btn" title="Close AI panel">×</button>
                     </div>
@@ -146,6 +147,83 @@
                         <button id="ai-send" class="btn-primary" disabled title="Send message (Enter)">
                             <span class="icon">➤</span> Send
                         </button>
+                    </div>
+                </div>
+
+                <!-- Multi-Agent Consortium Interface (Sprint 4) -->
+                <div id="multi-agent-section" style="display: none; border-top: 1px solid #3c3c3c; padding-top: 20px; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0; font-size: 14px; color: #cccccc; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">
+                            🤖 Multi-Agent Consortium
+                        </h3>
+                        <button id="toggle-multi-agent" class="icon-btn" title="Hide multi-agent interface" style="padding: 4px 8px; font-size: 12px;">Hide</button>
+                    </div>
+
+                    <!-- Mode Selector -->
+                    <div class="multi-agent-mode-selector">
+                        <button class="mode-btn" data-mode="panel" title="Sequential responses from selected personas">
+                            📋 Panel Discussion
+                        </button>
+                        <button class="mode-btn" data-mode="consensus" title="Parallel analysis with majority voting">
+                            🗳️ Consensus Voting
+                        </button>
+                        <button class="mode-btn" data-mode="debate" title="Alternating perspectives and counter-arguments">
+                            💬 Debate
+                        </button>
+                    </div>
+
+                    <!-- Persona Selector -->
+                    <div class="multi-agent-persona-selector">
+                        <h3>Select Expert Personas</h3>
+                        <div class="persona-categories">
+                            <div class="category">
+                                <h4>Core Council</h4>
+                                <div class="persona-list">
+                                    <label><input type="checkbox" value="master-teacher"> 👨‍🏫 Master Teacher</label>
+                                    <label><input type="checkbox" value="strategist"> 📊 Strategist</label>
+                                    <label><input type="checkbox" value="theologian"> ⛪ Theologian</label>
+                                    <label><input type="checkbox" value="classical-educator"> 📖 Classical Educator</label>
+                                </div>
+                            </div>
+                            <div class="category">
+                                <h4>Specialists</h4>
+                                <div class="persona-list">
+                                    <label><input type="checkbox" value="technical-architect"> 🏗️ Technical Architect</label>
+                                    <label><input type="checkbox" value="writer"> ✍️ Writer</label>
+                                    <label><input type="checkbox" value="analyst"> 🔬 Analyst</label>
+                                    <label><input type="checkbox" value="debugger"> 🐛 Debugger</label>
+                                    <label><input type="checkbox" value="gen-alpha-expert"> 🎮 Gen-Alpha Expert</label>
+                                    <label><input type="checkbox" value="ux-designer"> 🎨 UX Designer</label>
+                                    <label><input type="checkbox" value="marketing-strategist"> 📢 Marketing Strategist</label>
+                                    <label><input type="checkbox" value="game-designer"> 🎯 Game Designer</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="persona-count">None selected (auto-select all)</div>
+                        <div class="persona-buttons">
+                            <button class="persona-select-all">Select All</button>
+                            <button class="persona-clear-all">Clear All</button>
+                        </div>
+                    </div>
+
+                    <!-- Question Input Area -->
+                    <div class="multi-agent-input-area">
+                        <textarea 
+                            class="question-input" 
+                            placeholder="Ask the Consortium a game design question... (Shift+Enter for new line, Enter to execute)"
+                            rows="3"
+                        ></textarea>
+                        <div class="input-controls">
+                            <span class="char-count">0 / 2000</span>
+                            <button class="execute-btn">▶️ Execute Workflow</button>
+                        </div>
+                    </div>
+
+                    <!-- Results Display -->
+                    <div class="multi-agent-results">
+                        <p style="text-align: center; color: #888; padding: 20px;">
+                            Results will appear here after executing a workflow
+                        </p>
                     </div>
                 </div>
             </aside>
@@ -319,5 +397,6 @@
 
     <script src="agent-memory.js"></script>
     <script src="editor.js"></script>
+    <script type="module" src="multi-agent-ui.js"></script>
 </body>
 </html>

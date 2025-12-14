@@ -9,9 +9,10 @@
  * 
  * Uses LangGraph.js for agent orchestration
  * Provides streaming response support for real-time updates
+ * 
+ * NOTE: This is CommonJS (.cjs) to work with the local dev server
+ * For Netlify production, esbuild will handle the ES module conversion
  */
-
-import { executeMultiAgentWorkflow } from '../../langgraph-agents.js';
 
 /**
  * CORS headers for browser requests
@@ -65,9 +66,9 @@ const formatResponse = (result, executionTime) => ({
 });
 
 /**
- * Main handler
+ * Main handler - using async/await for both CommonJS and compatibility
  */
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   const requestId = `multi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const startTime = Date.now();
   
@@ -153,6 +154,8 @@ export const handler = async (event, context) => {
     console.log('[API] 🚀 Executing multi-agent workflow...');
     console.log('[API] ▶️ Starting agent orchestration');
     
+    // Dynamic import of ESM module
+    const { executeMultiAgentWorkflow } = await import('../../langgraph-agents.js');
     const result = await executeMultiAgentWorkflow(question, mode, personas);
     
     const executionTime = Date.now() - startTime;
@@ -200,7 +203,7 @@ export const handler = async (event, context) => {
  * Streaming endpoint for real-time agent responses (future enhancement)
  * Would allow streaming synthesis as agents complete
  */
-export const handlerStreaming = async (event, context) => {
+exports.handlerStreaming = async (event, context) => {
   // Future: Implement streaming response using event streams
   // Currently Netlify Functions don't support streaming, but this structure
   // allows for migration to Netlify Edge Functions or other serverless platforms
