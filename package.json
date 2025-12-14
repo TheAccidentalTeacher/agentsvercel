@@ -17,7 +17,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.3.1"
+    "@mozilla/readability": "^0.6.0",
+    "cheerio": "^1.1.2",
+    "dotenv": "^16.3.1",
+    "jsdom": "^27.3.0"
   },
   "devDependencies": {
     "@langchain/anthropic": "^0.3.33",

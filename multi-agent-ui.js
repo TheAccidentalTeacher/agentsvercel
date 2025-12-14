@@ -1068,7 +1068,9 @@ class MultiAgentUIController {
       
       const startAPITime = performance.now();
       const result = await this.client.research(query, {
-        maxResults: 10
+        maxResults: 10,
+        extractContent: true,  // Enable content extraction
+        maxExtract: 5          // Extract top 5 results
       });
       const apiTime = performance.now() - startAPITime;
       
@@ -1102,7 +1104,9 @@ class MultiAgentUIController {
       return;
     }
 
-    const { results, stats, query } = result;
+    const { results, stats, query, extractedContent = [], chunks = [] } = result;
+
+    const hasExtractedContent = extractedContent.some(e => !e.error);
 
     let html = `
       <div class="research-results">
@@ -1113,9 +1117,15 @@ class MultiAgentUIController {
             <span>📊 ${results.length} results</span>
             <span>⏱️ ${stats.totalDuration}ms</span>
             <span>🔗 ${stats.totalSources} sources (${stats.afterDeduplication} unique)</span>
+            ${hasExtractedContent ? `<span>📄 ${stats.extractedCount} extracted</span>` : ''}
+            ${chunks.length > 0 ? `<span>📚 ${chunks.length} chunks</span>` : ''}
           </div>
         </div>
+        
+        ${hasExtractedContent ? this.renderExtractedContent(extractedContent) : ''}
+        
         <div class="research-results-list">
+          <h4>Search Results</h4>
     `;
 
     results.forEach((result, index) => {
@@ -1146,6 +1156,58 @@ class MultiAgentUIController {
 
     resultsContainer.innerHTML = html;
     log('SUCCESS', '✅ Research results rendered');
+  }
+
+  /**
+   * Render extracted content section
+   */
+  renderExtractedContent(extractedContent) {
+    const successful = extractedContent.filter(e => !e.error);
+    if (successful.length === 0) return '';
+
+    let html = `
+      <div class="extracted-content-section">
+        <h4>📄 Extracted Content (${successful.length} sources)</h4>
+        <div class="extracted-content-list">
+    `;
+
+    successful.forEach((content, index) => {
+      const excerpt = content.excerpt || (content.content ? content.content.substring(0, 200) + '...' : 'No content');
+      html += `
+        <details class="extracted-item">
+          <summary class="extracted-summary">
+            <span class="extracted-number">${index + 1}</span>
+            <span class="extracted-title">${this.escapeHtml(content.title)}</span>
+            <span class="extracted-meta">
+              ${content.wordCount} words
+              ${content.author ? `• by ${this.escapeHtml(content.author)}` : ''}
+            </span>
+          </summary>
+          <div class="extracted-content">
+            <div class="extracted-url">
+              <a href="${this.escapeHtml(content.url)}" target="_blank">
+                ${this.escapeHtml(content.url)}
+              </a>
+            </div>
+            ${content.publishedDate ? `<div class="extracted-date">📅 ${content.publishedDate}</div>` : ''}
+            <div class="extracted-excerpt">
+              ${this.escapeHtml(excerpt)}
+            </div>
+            <div class="extracted-full">
+              <strong>Full Content:</strong>
+              <div class="content-text">${this.escapeHtml(content.content).replace(/\n/g, '<br>')}</div>
+            </div>
+          </div>
+        </details>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    return html;
   }
 }
 
