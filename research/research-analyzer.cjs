@@ -89,44 +89,49 @@ class ResearchAnalyzer {
     console.log(`[ResearchAnalyzer] Analyzing with ${personasToUse.length} personas`);
 
     const startTime = Date.now();
-    const analyses = [];
 
     // Prepare content summary for analysis
     const contentSummary = this.prepareContentSummary(extractedContent, chunks);
 
-    // Analyze with each persona
-    for (const personaId of personasToUse) {
+    // Analyze with ALL personas IN PARALLEL (much faster!)
+    console.log(`[ResearchAnalyzer] Starting ${personasToUse.length} analyses in parallel...`);
+    
+    const analysisPromises = personasToUse.map(async (personaId) => {
       const role = this.analysisRoles[personaId];
       if (!role) {
         console.warn(`[ResearchAnalyzer] Unknown persona: ${personaId}`);
-        continue;
+        return null;
       }
 
       try {
-        console.log(`[ResearchAnalyzer] Analyzing with ${role.name}...`);
+        console.log(`[ResearchAnalyzer] 🔄 ${role.name} starting...`);
         const analysis = await this.analyzeWithPersona(query, contentSummary, personaId);
-        analyses.push({
+        console.log(`[ResearchAnalyzer] ✓ ${role.name} complete`);
+        return {
           persona: personaId,
           name: role.name,
           focus: role.focus,
           analysis: analysis,
           timestamp: new Date().toISOString()
-        });
-        console.log(`[ResearchAnalyzer] ✓ ${role.name} analysis complete`);
+        };
       } catch (error) {
-        console.error(`[ResearchAnalyzer] ✗ ${role.name} analysis failed:`, error.message);
-        analyses.push({
+        console.error(`[ResearchAnalyzer] ✗ ${role.name} failed:`, error.message);
+        return {
           persona: personaId,
           name: role.name,
           focus: role.focus,
           error: error.message,
           timestamp: new Date().toISOString()
-        });
+        };
       }
-    }
+    });
+
+    // Wait for all analyses to complete
+    const analysisResults = await Promise.all(analysisPromises);
+    const analyses = analysisResults.filter(a => a !== null);
 
     const analysisDuration = Date.now() - startTime;
-    console.log(`[ResearchAnalyzer] All analyses complete in ${analysisDuration}ms`);
+    console.log(`[ResearchAnalyzer] ✅ All ${analyses.length} analyses complete in ${analysisDuration}ms`);
 
     // Synthesize all analyses
     const synthesis = await this.synthesizeAnalyses(query, analyses, contentSummary);
