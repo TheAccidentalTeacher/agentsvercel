@@ -165,27 +165,74 @@
 **Status**: ✅ PRODUCTION READY  
 **Documentation**: PHASE_6_WEEK_7-8_COMPLETE.md
 
-### 🔜 Weeks 9-10: Advanced Features (NEXT)
-**Potential Enhancements**:
-1. **Enhanced Export**
-   - PDF generation (with charts/graphs)
-   - Copy to clipboard
-   - Share link generation
-   - Export to Google Docs/Notion
+---
 
-2. **Advanced Memory**
-   - Cloud sync (Firebase/Supabase)
-   - Search & filter history
-   - Tags & categories
-   - Favorites/bookmarks
-   - Session comparison view
+## 🚀 Phase 7: Supabase Cloud Sync - PLANNING
 
-3. **Vector Search** (Optional)
-   - Find related research from past sessions
-   - Build knowledge graph over time
-   - "Show me research related to X"
+### 🎯 Goal: Multi-Device Access
+**User Need**: Access research from desktop, laptop, tablet, and mobile devices
 
-**Expected Timeline**: 4-6 hours implementation
+**Status**: 📋 PLANNING  
+**Documentation**: PHASE_7_SUPABASE_PLAN.md  
+**SQL Schema**: supabase-schema.sql (ready to run)
+
+### Why Supabase?
+- ✅ Multi-device sync (research available everywhere)
+- ✅ Cloud backup (no data loss if browser cache cleared)
+- ✅ PostgreSQL reliability (rock-solid database)
+- ✅ Free tier: 500MB storage (~1,250 research sessions)
+- ✅ Built-in authentication (Google, GitHub OAuth)
+- ✅ Real-time sync (changes appear instantly on all devices)
+- ✅ Row-Level Security (your data stays private)
+- ✅ No server needed (direct from browser)
+
+### Architecture
+**Current**: Browser → localStorage (5-10MB, single device)  
+**Phase 7**: Browser → localStorage + Supabase (500MB, all devices)
+
+**Hybrid Strategy**:
+- Write to localStorage first (instant, offline support)
+- Auto-sync to Supabase in background (reliable backup)
+- Read from Supabase on load (always get latest)
+- Fallback to localStorage if offline
+
+### Database Schema
+- `research_sessions` table - All research data with RLS security
+- `user_preferences` table - User settings
+- Full-text search on queries
+- Indexes for performance
+- Auto-update timestamps
+- Soft delete (30-day recovery)
+
+### Implementation Plan
+1. **Setup** (30 min)
+   - [ ] User creates Supabase account
+   - [ ] User creates project, gets credentials
+   - [ ] Run SQL schema in Supabase
+   - [ ] Add credentials to `.env.local`
+
+2. **Code** (2 hours)
+   - [ ] Install `@supabase/supabase-js`
+   - [ ] Refactor `ResearchMemory` class for hybrid sync
+   - [ ] Add Supabase client
+   - [ ] Implement sync methods
+   - [ ] Add authentication UI (Google/GitHub login)
+
+3. **UI** (1 hour)
+   - [ ] Add sync status indicator (🔄 syncing, ✅ synced)
+   - [ ] Add profile dropdown
+   - [ ] Add login modal
+   - [ ] Add offline indicator
+   - [ ] Show last sync timestamp
+
+4. **Testing** (30 min)
+   - [ ] Test multi-device sync
+   - [ ] Test offline mode
+   - [ ] Test mobile browser
+   - [ ] Test authentication flow
+
+**Expected Timeline**: 3-4 hours total  
+**Next Step**: User creates Supabase project + provides credentials
 
 
 ---
