@@ -10,6 +10,9 @@ desktop.ini
 *.swo
 *~
 
+# Dependencies
+node_modules/
+
 # Logs
 *.log
 npm-debug.log*

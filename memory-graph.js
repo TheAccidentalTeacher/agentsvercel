@@ -99,6 +99,17 @@ window.MemoryGraph = (function() {
     // Create main group for graph elements
     state.g = state.svg.append('g');
 
+    // Listen for memory updates and deletions from modal
+    window.addEventListener('memory-updated', (event) => {
+      console.log('[MemoryGraph] Memory updated, refreshing graph...', event.detail);
+      loadGraphData(userId);
+    });
+    
+    window.addEventListener('memory-deleted', (event) => {
+      console.log('[MemoryGraph] Memory deleted, refreshing graph...', event.detail);
+      loadGraphData(userId);
+    });
+
     // Load initial data
     await loadGraphData(userId);
 
@@ -361,132 +372,67 @@ window.MemoryGraph = (function() {
   }
 
   /**
-   * Show memory preview (temporary, replaced by modal in Days 15-17)
-   * @param {Object} node - Node data
+   * Show memory details modal (Phase 10 Week 3 - Days 15-17)
+   * @param {Object} node - Node data from graph
    */
-  function showMemoryPreview(node) {
-    // Create modal overlay
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      animation: fadeIn 0.2s;
-    `;
+  async function showMemoryPreview(node) {
+    console.log('[MemoryGraph] Opening memory details modal for:', node.label);
     
-    // Create modal content
-    const content = document.createElement('div');
-    content.style.cssText = `
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 600px;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      position: relative;
-    `;
+    // Check if modal is available
+    if (!window.memoryDetailsModal) {
+      console.error('❌ Memory Details Modal not loaded');
+      alert(`Memory: ${node.label}\n\n${node.fullContent || 'No content'}`);
+      return;
+    }
     
-    // Get color for node type
-    const colors = {
-      research: '#3b82f6',
-      video: '#ef4444',
-      creative: '#a855f7',
-      conversation: '#10b981',
-      manual: '#6b7280'
-    };
-    
-    const typeIcons = {
-      research: '📚',
-      video: '🎥',
-      creative: '🎨',
-      conversation: '💬',
-      manual: '📝'
-    };
-    
-    content.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 2px solid ${colors[node.type]};">
-        <span style="font-size: 32px;">${typeIcons[node.type] || '📄'}</span>
-        <div style="flex: 1;">
-          <h2 style="margin: 0; font-size: 20px; color: #1f2937;">${node.label}</h2>
-          <div style="display: flex; gap: 12px; margin-top: 4px; font-size: 13px; color: #6b7280;">
-            <span style="background: ${colors[node.type]}; color: white; padding: 2px 8px; border-radius: 4px;">${node.type}</span>
-            <span>📅 ${new Date(node.createdAt).toLocaleDateString()}</span>
-            <span>🔗 ${getConnectionCount(node)} connections</span>
-          </div>
-        </div>
-        <button 
-          id="close-preview-modal" 
-          style="background: none; border: none; font-size: 24px; color: #9ca3af; cursor: pointer; padding: 4px;"
-          title="Close"
-        >✕</button>
-      </div>
+    try {
+      // Convert node data to memory format expected by modal
+      const memory = {
+        id: node.id,
+        title: node.label,
+        content: node.fullContent || '',
+        content_type: node.type,
+        tags: node.tags || [],
+        created_at: node.createdAt,
+        updated_at: node.updatedAt || node.createdAt,
+        source_url: node.sourceUrl,
+        metadata: node.metadata
+      };
       
-      ${node.tags && node.tags.length > 0 ? `
-        <div style="margin-bottom: 16px;">
-          <strong style="font-size: 14px; color: #6b7280;">Tags:</strong>
-          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
-            ${node.tags.map(tag => `
-              <span style="background: #f3f4f6; color: #4b5563; padding: 4px 10px; border-radius: 12px; font-size: 12px;">
-                🏷️ ${tag}
-              </span>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
+      // Get connections for this node from graph data
+      const connections = [];
+      if (state.graphData && state.graphData.links) {
+        state.graphData.links.forEach(link => {
+          let targetNode = null;
+          let strength = link.strength || 0.5;
+          
+          // Check if this node is source or target
+          if (link.source.id === node.id) {
+            targetNode = link.target;
+          } else if (link.target.id === node.id) {
+            targetNode = link.source;
+          }
+          
+          if (targetNode) {
+            connections.push({
+              id: targetNode.id,
+              title: targetNode.label,
+              content: targetNode.fullContent || '',
+              content_type: targetNode.type,
+              created_at: targetNode.createdAt,
+              connection_strength: strength
+            });
+          }
+        });
+      }
       
-      <div style="margin-bottom: 16px;">
-        <strong style="font-size: 14px; color: #6b7280;">Content:</strong>
-        <div style="margin-top: 8px; padding: 12px; background: #f9fafb; border-radius: 8px; font-size: 14px; line-height: 1.6; color: #1f2937; white-space: pre-wrap;">
-          ${node.fullContent}
-        </div>
-      </div>
+      // Show the modal
+      window.memoryDetailsModal.show(memory, connections);
       
-      ${node.metadata ? `
-        <details style="margin-top: 12px;">
-          <summary style="cursor: pointer; font-size: 14px; color: #6b7280; font-weight: 500;">📊 Metadata</summary>
-          <pre style="margin-top: 8px; padding: 12px; background: #f9fafb; border-radius: 8px; font-size: 12px; overflow-x: auto;">${JSON.stringify(node.metadata, null, 2)}</pre>
-        </details>
-      ` : ''}
-      
-      <div style="display: flex; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-        <button 
-          id="copy-memory-content"
-          style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #4b5563; cursor: pointer; font-size: 14px; font-weight: 500;"
-        >
-          📋 Copy Content
-        </button>
-        <button 
-          id="close-preview-modal-btn"
-          style="flex: 1; padding: 10px; border: none; border-radius: 6px; background: ${colors[node.type]}; color: white; cursor: pointer; font-size: 14px; font-weight: 500;"
-        >
-          Close
-        </button>
-      </div>
-    `;
-    
-    modal.appendChild(content);
-    document.body.appendChild(modal);
-    
-    // Event listeners
-    document.getElementById('close-preview-modal').addEventListener('click', () => modal.remove());
-    document.getElementById('close-preview-modal-btn').addEventListener('click', () => modal.remove());
-    document.getElementById('copy-memory-content').addEventListener('click', () => {
-      navigator.clipboard.writeText(node.fullContent);
-      const btn = document.getElementById('copy-memory-content');
-      btn.textContent = '✅ Copied!';
-      setTimeout(() => btn.textContent = '📋 Copy Content', 2000);
-    });
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
+    } catch (err) {
+      console.error('❌ Error showing memory details:', err);
+      alert(`Memory: ${node.label}\n\n${node.fullContent || 'No content'}`);
+    }
   }
   
   /**

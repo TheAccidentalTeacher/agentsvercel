@@ -2,6 +2,7 @@
 // Memory tab with search, filters, and display
 
 import { supabase } from './supabase-client.js';
+import { memoryDetailsModal } from './memory-details-modal.js';
 
 // Memory UI state
 let currentUser = null;
@@ -34,7 +35,34 @@ export async function initMemoryUI() {
   // Load initial memories
   await loadRecentMemories();
   
+  // Listen for memory updates and deletions
+  window.addEventListener('memory-updated', handleMemoryUpdate);
+  window.addEventListener('memory-deleted', handleMemoryDelete);
+  
   console.log('✅ [Memory UI] Initialized');
+}
+
+/**
+ * Handle memory update from modal
+ */
+function handleMemoryUpdate(event) {
+  console.log('🔄 [Memory UI] Memory updated, refreshing...', event.detail);
+  // Refresh current view
+  if (searchResults.length > 0) {
+    performSearch(); // Re-run last search
+  } else {
+    loadRecentMemories(); // Reload recent
+  }
+}
+
+/**
+ * Handle memory deletion from modal
+ */
+function handleMemoryDelete(event) {
+  console.log('🗑️ [Memory UI] Memory deleted, refreshing...', event.detail);
+  // Remove from current results
+  searchResults = searchResults.filter(m => m.id !== event.detail.memoryId);
+  displaySearchResults(searchResults);
 }
 
 /**
@@ -723,12 +751,43 @@ function createMemoryCard(memory) {
 /**
  * Show detailed memory view (modal)
  */
-function showMemoryDetails(memory) {
-  // TODO: Implement detailed view modal
-  console.log('📖 [Memory Details]', memory);
+async function showMemoryDetails(memory) {
+  console.log('📖 [Memory Details] Opening modal for:', memory.title);
   
-  // For now, just show an alert
-  alert(`Memory: ${memory.title}\n\n${memory.content}`);
+  try {
+    // Fetch connections for this memory
+    const { data: connections, error } = await supabase
+      .from('memory_connections')
+      .select(`
+        connection_strength,
+        target_memory_id,
+        target:user_memories!target_memory_id(*)
+      `)
+      .eq('source_memory_id', memory.id)
+      .order('connection_strength', { ascending: false })
+      .limit(10);
+    
+    if (error) {
+      console.error('❌ Error fetching connections:', error);
+      // Show modal without connections
+      memoryDetailsModal.show(memory, []);
+      return;
+    }
+    
+    // Format connections for modal
+    const formattedConnections = (connections || []).map(conn => ({
+      ...conn.target,
+      connection_strength: conn.connection_strength
+    }));
+    
+    // Show modal with connections
+    memoryDetailsModal.show(memory, formattedConnections);
+    
+  } catch (err) {
+    console.error('❌ Error opening memory details:', err);
+    // Fallback to showing without connections
+    memoryDetailsModal.show(memory, []);
+  }
 }
 
 /**
