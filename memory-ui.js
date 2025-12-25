@@ -220,6 +220,15 @@ function createMemoryTab() {
             title="Filter memories until this date"
           />
           
+          <!-- Auto-Connect Button -->
+          <button 
+            id="graph-auto-connect" 
+            style="padding: 6px 12px; border: 1px solid var(--accent-color); border-radius: 4px; background: rgba(33, 150, 243, 0.1); color: var(--accent-color); font-size: 13px; cursor: pointer; font-weight: 500;"
+            title="Automatically detect connections between memories"
+          >
+            🔗 Auto-Connect
+          </button>
+          
           <!-- Export Controls -->
           <button 
             id="graph-export-png" 
@@ -444,6 +453,51 @@ function attachGraphEventListeners() {
     });
   }
   
+  // Auto-Connect button
+  const autoConnectBtn = document.getElementById('graph-auto-connect');
+  if (autoConnectBtn) {
+    autoConnectBtn.addEventListener('click', async () => {
+      if (!currentUser) {
+        showToast('⚠️ Please sign in to use auto-connect', 'warning');
+        return;
+      }
+      
+      autoConnectBtn.disabled = true;
+      autoConnectBtn.textContent = '⏳ Detecting connections...';
+      
+      try {
+        const response = await fetch('/.netlify/functions/memory-auto-connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Auto-connect failed: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.connectionsCreated === 0) {
+          showToast('ℹ️ No new connections found', 'info');
+        } else {
+          showToast(`✅ Found ${result.connectionsCreated} new connections!`, 'success');
+          
+          // Reload graph to show new connections
+          if (window.MemoryGraph && window.memoryGraphInitialized) {
+            await window.MemoryGraph.init('memory-graph-container', currentUser.id);
+          }
+        }
+      } catch (error) {
+        console.error('Auto-connect error:', error);
+        showToast('❌ Auto-connect failed: ' + error.message, 'error');
+      } finally {
+        autoConnectBtn.disabled = false;
+        autoConnectBtn.textContent = '🔗 Auto-Connect';
+      }
+    });
+  }
+  
   // Export buttons
   const exportPng = document.getElementById('graph-export-png');
   const exportSvg = document.getElementById('graph-export-svg');
@@ -518,39 +572,29 @@ function attachGraphEventListeners() {
 function showToast(message, type = 'info') {
   // Create toast element
   const toast = document.createElement('div');
-  toast.className = 'memory-toast';
-  toast.textContent = message;
+  toast.className = `memory-toast ${type}`;
   
-  // Style based on type
-  const colors = {
-    success: '#10b981',
-    error: '#ef4444',
-    warning: '#f59e0b',
-    info: '#3b82f6'
+  // Toast icon based on type
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
   };
   
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: ${colors[type] || colors.info};
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10000;
-    animation: slideIn 0.3s ease-out;
+  toast.innerHTML = `
+    <span class="memory-toast-icon">${icons[type] || icons.info}</span>
+    <span class="memory-toast-message">${message}</span>
+    <button class="memory-toast-close" onclick="this.parentElement.remove()">×</button>
   `;
   
   document.body.appendChild(toast);
   
-  // Remove after 3 seconds
+  // Auto-remove after 4 seconds
   setTimeout(() => {
-    toast.style.animation = 'slideOut 0.3s ease-out';
+    toast.classList.add('toast-exit');
     setTimeout(() => toast.remove(), 300);
-  }, 3000);
+  }, 4000);
 }
 
 /**
