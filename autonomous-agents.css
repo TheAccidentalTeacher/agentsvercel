@@ -1,0 +1,434 @@
+/* ============================================================================
+   AUTONOMOUS AGENTS - Phase 12
+   Task queue, scheduling, and background execution UI
+   ============================================================================ */
+
+/* Autonomous Agents Button in Top Bar */
+#autonomous-agents-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(156, 39, 176, 0.1);
+    color: #AB47BC;
+    border: 1px solid rgba(156, 39, 176, 0.3);
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#autonomous-agents-btn:hover {
+    background: rgba(156, 39, 176, 0.2);
+    border-color: #AB47BC;
+    transform: translateY(-1px);
+}
+
+#autonomous-badge {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: #F44336;
+    color: white;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Autonomous Agents Dashboard */
+#autonomous-tasks-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+#autonomous-tasks-list {
+    margin-top: 24px;
+}
+
+.autonomous-empty-state {
+    text-align: center;
+    padding: 64px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 2px dashed #3c3c3c;
+}
+
+.autonomous-empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.autonomous-empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    color: #fff;
+}
+
+.autonomous-empty-state p {
+    margin: 0 0 24px 0;
+    color: #888;
+    font-size: 14px;
+}
+
+/* Task Sections */
+.autonomous-section {
+    margin-bottom: 32px;
+}
+
+.autonomous-section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.autonomous-section-title .badge {
+    background: rgba(33, 150, 243, 0.2);
+    color: #2196F3;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Task Cards */
+.autonomous-task-card {
+    background: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+}
+
+.autonomous-task-card:hover {
+    background: #2d2d2d;
+    border-color: #4c4c4c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.autonomous-task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.autonomous-task-status {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.autonomous-task-type {
+    font-size: 13px;
+    color: #888;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 12px;
+    border-radius: 4px;
+}
+
+.autonomous-task-body {
+    margin-bottom: 16px;
+}
+
+.autonomous-task-name {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.autonomous-task-description {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #aaa;
+    line-height: 1.5;
+}
+
+.autonomous-task-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 12px;
+}
+
+.autonomous-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.autonomous-meta-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.autonomous-meta-value {
+    font-size: 13px;
+    color: #fff;
+    font-weight: 500;
+}
+
+.autonomous-meta-value.overdue {
+    color: #F44336;
+    font-weight: 600;
+}
+
+/* Progress Bar */
+.autonomous-progress {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.autonomous-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2196F3, #21CBF3);
+    transition: width 0.3s ease;
+}
+
+.autonomous-progress-text {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #888;
+}
+
+/* Task Actions */
+.autonomous-task-actions {
+    display: flex;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #3c3c3c;
+}
+
+/* Create Task Modal */
+.autonomous-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.autonomous-modal.visible {
+    display: flex;
+}
+
+.autonomous-modal-content {
+    background: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.autonomous-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid #3c3c3c;
+}
+
+.autonomous-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #fff;
+}
+
+.autonomous-modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 32px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.autonomous-modal-close:hover {
+    color: #fff;
+}
+
+/* Form Styles */
+#autonomous-create-form {
+    padding: 24px;
+}
+
+.autonomous-form-group {
+    margin-bottom: 20px;
+}
+
+.autonomous-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.autonomous-form-group input[type="text"],
+.autonomous-form-group input[type="number"],
+.autonomous-form-group input[type="datetime-local"],
+.autonomous-form-group textarea,
+.autonomous-form-group select {
+    width: 100%;
+    padding: 12px;
+    background: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.autonomous-form-group input:focus,
+.autonomous-form-group textarea:focus,
+.autonomous-form-group select:focus {
+    outline: none;
+    border-color: #AB47BC;
+    box-shadow: 0 0 0 3px rgba(171, 71, 188, 0.1);
+}
+
+.autonomous-form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.autonomous-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.autonomous-checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Schedule Buttons */
+.autonomous-schedule-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.btn-schedule {
+    padding: 10px;
+    background: rgba(33, 150, 243, 0.1);
+    color: #2196F3;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-schedule:hover {
+    background: rgba(33, 150, 243, 0.2);
+    border-color: #2196F3;
+    transform: translateY(-1px);
+}
+
+.autonomous-datetime-input {
+    margin-top: 8px;
+}
+
+/* Config Sections */
+.autonomous-config-section {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+/* Form Actions */
+.autonomous-form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid #3c3c3c;
+}
+
+/* Results Modal */
+.autonomous-results-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.autonomous-results-content {
+    background: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.autonomous-results-content h2 {
+    margin: 0 0 16px 0;
+    color: #fff;
+}
+
+.autonomous-results-content pre {
+    background: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    color: #ddd;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .autonomous-schedule-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .autonomous-task-meta {
+        flex-direction: column;
+        gap: 12px;
+    }
+}

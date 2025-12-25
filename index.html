@@ -15,6 +15,7 @@
     
     <link rel="stylesheet" href="style-new.css">
     <link rel="stylesheet" href="context-panel-styles.css">
+    <link rel="stylesheet" href="autonomous-agents.css">
     <script src="tooltip.js"></script>
 </head>
 <body>
@@ -30,6 +31,12 @@
                 <button id="load-project" title="Load project file (Ctrl+O)">📂 Load Project</button>
                 <button id="clear-all" title="Clear everything">🗑️ Clear All</button>
                 <button id="help-btn" title="Open Help Guide" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; border: none;">📚 Help</button>
+                
+                <!-- Autonomous Agents Button -->
+                <button id="autonomous-agents-btn" title="Manage autonomous tasks" onclick="showAutonomousDashboard()">
+                    🤖 Autonomous
+                    <span id="autonomous-badge">0</span>
+                </button>
                 
                 <!-- Authentication UI -->
                 <div id="auth-container" style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
@@ -538,6 +545,22 @@
                 <button id="close-memory-modal" class="btn-primary">Close</button>
             </div>
         </div>
+    </div>
+
+    <!-- Autonomous Agents Dashboard (hidden by default) -->
+    <div id="autonomous-tasks-container" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0;">🤖 Autonomous Agents Dashboard</h2>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="autonomousAgents.showCreateModal()" class="btn-primary">
+                    ⏰ Create Task
+                </button>
+                <button onclick="hideAutonomousDashboard()" class="btn-secondary">
+                    ✕ Close
+                </button>
+            </div>
+        </div>
+        <div id="autonomous-tasks-list"></div>
     </div>
 
     <!-- Agent Memory Module (loaded as module for ES6 compatibility) -->
@@ -2129,6 +2152,7 @@
     <script src="multi-file-handler.js"></script>
     <script src="multi-model.js"></script>
     <script src="expert-panels.js"></script>
+    <script src="autonomous-agents.js"></script>
     
     <!-- Help Button Handler -->
     <script>
@@ -2140,6 +2164,23 @@
                 });
             }
         });
+        
+        // Autonomous Agents Dashboard Toggle
+        function showAutonomousDashboard() {
+            document.getElementById('autonomous-tasks-container').style.display = 'block';
+            document.getElementById('canvas-container')?.style.display = 'none';
+            document.getElementById('ai-panel')?.style.display = 'none';
+        }
+        
+        function hideAutonomousDashboard() {
+            document.getElementById('autonomous-tasks-container').style.display = 'none';
+            document.getElementById('canvas-container')?.style.display = 'block';
+            document.getElementById('ai-panel')?.style.display = 'block';
+        }
+        
+        // Make functions globally accessible
+        window.showAutonomousDashboard = showAutonomousDashboard;
+        window.hideAutonomousDashboard = hideAutonomousDashboard;
     </script>
     
     <script type="module">
