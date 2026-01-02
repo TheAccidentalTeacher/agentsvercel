@@ -2,6 +2,9 @@
 [build]
   publish = "."
   functions = "netlify/functions"
+  # Exclude documentation and test files from secrets scanning
+  # These contain example credentials that are not used in production
+  environment = { SECRETS_SCAN_OMIT_PATHS = "docs/**,*.md,test-key.html,.env.example" }
 
 # Function settings
 [functions]
@@ -12,6 +15,9 @@
 
 [functions."document-process"]
   timeout = 60
+
+[functions."task-scheduler"]
+  schedule = "*/15 * * * *"
 
 # Headers for security
 [[headers]]
