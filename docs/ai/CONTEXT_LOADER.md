@@ -1,5 +1,102 @@
 # AI Context Loader - MASTER INDEX
 
+---
+
+## ⚠️ DEPLOYMENT REMOVALS - CRITICAL DOCUMENTATION
+### TEMPORARY FEATURE REMOVALS FOR NETLIFY PRODUCTION DEPLOY
+**Added**: January 1, 2026 | **Reason**: Build dependency issues  
+**MUST READ BEFORE MAKING CHANGES** - These features were temporarily removed to get to production. Add them back when time allows.
+
+### 🚫 Removed Packages
+
+**1. epub-parser@^0.3.3** ❌
+- **Why**: Package doesn't exist in npm registry (404 error during `npm install`)
+- **Impact**: Cannot process EPUB files (eBooks)
+- **Restore**: Find correct package (`epub2`, `epub.js`, or alternative) - research needed
+- **Files Affected**: 
+  - [document-process.cjs](../../netlify/functions/document-process.cjs) (line 7 - import removed)
+  - [extract-documents.cjs](../../netlify/functions/extract-documents.cjs) (EPUB handler disabled)
+
+**2. tesseract.js@^5.1.1** ❌
+- **Why**: OCR adds build complexity; not essential for MVP; can add later
+- **Impact**: No OCR (Optical Character Recognition) for scanned PDFs or images
+- **Restore**: `npm install tesseract.js@^5.1.1` + restore function code from git history
+- **Files Affected**:
+  - [document-process.cjs](../../netlify/functions/document-process.cjs) (line 9 - import removed)
+  - [extract-documents.cjs](../../netlify/functions/extract-documents.cjs) (extractPdfWithGhostscript function simplified)
+- **Git History**: Commit `e822264` - "Remove problematic dependencies"
+
+**3. canvas@^3.0.0** ❌
+- **Why**: Native build requirements (Cairo, Pango, libjpeg) cause Netlify build failures
+- **Impact**: No PDF-to-image rendering (used for OCR preprocessing)
+- **Restore**: `npm install canvas` (requires system-level dependencies) OR use alternative (Puppeteer, sharp)
+- **Files Affected**:
+  - [extract-documents.cjs](../../netlify/functions/extract-documents.cjs) (line 11 - `createCanvas` import removed)
+- **Alternative**: Consider headless browser (Puppeteer) for server-side PDF rendering
+
+**4. pdfjs-dist/legacy/build/pdf.js** ⚠️ (Package still installed, imports removed)
+- **Why**: Used with canvas for PDF rendering; canvas removed = no need for this code path
+- **Impact**: PDF.js-based rendering disabled
+- **Restore**: Uncomment import + restore rendering logic (preserved in git history)
+- **Files Affected**:
+  - [extract-documents.cjs](../../netlify/functions/extract-documents.cjs) (line 10 - `pdfjsLib` import removed)
+
+### 📦 What Still Works
+
+✅ **PDF Processing**: Text-based PDFs via `pdf-parse` (no OCR)  
+✅ **DOCX Processing**: Via `mammoth`  
+✅ **Excel/CSV**: Via `xlsx`  
+✅ **Plain Text**: Direct processing  
+✅ **All 35 Netlify Functions**: Chat, research, video, memory systems  
+✅ **12-Persona Consortium**: Full multi-agent system  
+✅ **Deep Research**: 6 APIs, 4-phase workflow  
+✅ **Video Intelligence**: YouTube + 7 content tools  
+
+### 🔧 Restoration Plan
+
+**Phase 1** (After deploy succeeds):
+- Test all core features in production
+- Validate document processing (PDF/DOCX/XLSX)
+- Monitor Netlify function performance
+
+**Phase 2** (Week 1-2):
+- Research EPUB alternatives (try `epub2`, `epub.js`, `@tehshrike/readability`)
+- Add back EPUB support with working package
+
+**Phase 3** (Week 3-4):
+- Add `tesseract.js` for OCR
+- Restore `extractPdfWithGhostscript` function (from git commit `e822264`)
+- Test scanned PDF processing
+
+**Phase 4** (Later):
+- Evaluate canvas alternatives for Netlify:
+  - Option A: Puppeteer (headless Chrome)
+  - Option B: sharp (image processing library)
+  - Option C: Stay with basic pdf-parse (good enough)
+
+### 📝 Code Changes Made
+
+**Imports Removed:**
+```javascript
+// document-process.cjs (lines 7-9)
+const epubParser = require('epub-parser');  // ❌ REMOVED
+const Tesseract = require('tesseract.js');  // ❌ REMOVED
+
+// extract-documents.cjs (lines 9-11)
+const Tesseract = require('tesseract.js');                    // ❌ REMOVED
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');  // ❌ REMOVED
+const { createCanvas } = require('canvas');                   // ❌ REMOVED
+```
+
+**Functions Modified:**
+- **extractPdfWithGhostscript()** in [extract-documents.cjs](../../netlify/functions/extract-documents.cjs)
+  - **Before**: 75 lines (Ghostscript + Tesseract OCR loop)
+  - **After**: 14 lines (basic pdf-parse fallback)
+  - **Lost**: OCR for scanned/image-based PDFs
+  - **To Restore**: See git history at commit `e822264`
+
+---
+
 ## Purpose
 This document serves as the **definitive master index** for loading complete project context into AI conversations. Reference this at the start of important conversations to maintain continuity and ensure access to the full vision, current state, and future plans.
 

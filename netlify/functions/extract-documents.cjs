@@ -63,35 +63,6 @@ async function extractPdfWithGhostscript(pdfBuffer, pageCount, filename) {
     console.error(`[extractPdfWithGhostscript] ❌ Basic extraction failed:`, error);
     return '';
   }
-}        
-      } catch (pageError) {
-        console.error(`[extractPdfWithGhostscript] Error processing page ${pageNum}:`, pageError.message);
-      }
-      
-      const elapsed = ((Date.now() - ocrStartTime) / 1000).toFixed(1);
-      console.log(`[extractPdfWithGhostscript] ✓ Page ${pageNum} done (${elapsed}s elapsed)`);
-    }
-    
-    const totalTime = ((Date.now() - ocrStartTime) / 1000).toFixed(1);
-    const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
-    console.log(`[extractPdfWithGhostscript] ✅ Ghostscript + OCR complete: ${wordCount} words extracted in ${totalTime}s`);
-    
-    return {
-      text: allText.trim(),
-      pageCount,
-      wordCount
-    };
-    
-  } finally {
-    // Clean up temp PDF
-    try {
-      if (fs.existsSync(pdfPath)) {
-        fs.unlinkSync(pdfPath);
-      }
-    } catch (e) {
-      console.error(`[extractPdfWithGhostscript] Failed to clean up ${pdfPath}:`, e.message);
-    }
-  }
 }
 
 exports.handler = async (event) => {
