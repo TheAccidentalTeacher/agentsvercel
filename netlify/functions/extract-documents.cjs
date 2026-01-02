@@ -1,14 +1,11 @@
 /**
  * Extract text from multiple documents
- * Supports PDF, DOCX, TXT, XLSX, images (OCR)
+ * Supports PDF, DOCX, TXT, XLSX
  */
 
 const rawPdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const XLSX = require('xlsx');
-const Tesseract = require('tesseract.js');
-const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-const { createCanvas } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -48,80 +45,25 @@ function getPdfParseFn(raw) {
   return null;
 }
 
-// Configure pdfjs-dist worker for v3.x
-pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.js');
+// OCR functionality temporarily disabled (requires tesseract.js and canvas packages)
+const OCR_AVAILABLE = false;
 
 /**
- * Extract PDF using Ghostscript + OCR
- * This is the most reliable method for ANY PDF
+ * Extract PDF using Ghostscript + OCR (DISABLED - requires tesseract.js)
+ * Falls back to basic pdf-parse
  */
 async function extractPdfWithGhostscript(pdfBuffer, pageCount, filename) {
-  console.log(`[extractPdfWithGhostscript] 🚀 Starting Ghostscript extraction for ${filename} (${pageCount} pages)`);
-  const tempDir = os.tmpdir();
-  const pdfPath = path.join(tempDir, `temp-${Date.now()}.pdf`);
+  console.log(`[extractPdfWithGhostscript] ⚠️ OCR disabled - using basic PDF extraction for ${filename}`);
   
+  // OCR not available - use basic pdf-parse instead
   try {
-    // Write PDF to temp file
-    fs.writeFileSync(pdfPath, pdfBuffer);
-    
-    let allText = '';
-    const ocrStartTime = Date.now();
-    
-    // Process each page
-    for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
-      const imagePath = path.join(tempDir, `gs-page-${Date.now()}-${pageNum}.png`);
-      
-      console.log(`[extractPdfWithGhostscript] 📄 Processing Page ${pageNum}/${pageCount}...`);
-      
-      try {
-        // Use Ghostscript in MOST PERMISSIVE mode for heavily corrupted PDFs
-        await execFileAsync('gswin64c', [
-          '-dQUIET',  // Suppress warnings
-          '-dBATCH',
-          '-dNOPAUSE',
-          '-dNOPROMPT',
-          '-sDEVICE=png16m',
-          '-r300',  // 300 DPI
-          '-dPDFSTOPONERROR=false',  // Don't stop on errors
-          '-dPDFSTOPONWARNING=false',  // Don't stop on warnings  
-          '-dNOSAFER',  // Less restrictive for corrupted files
-          '-dDELAYSAFER',  // Delay safety checks
-          `-dFirstPage=${pageNum}`,
-          `-dLastPage=${pageNum}`,
-          `-sOutputFile=${imagePath}`,
-          pdfPath
-        ]);
-        
-        console.log(`[extractPdfWithGhostscript] ✓ Rendered page ${pageNum} to ${imagePath}`);
-        
-        // Read the rendered image
-        const imageBuffer = fs.readFileSync(imagePath);
-        
-        // Check if image is blank before OCR
-        const imageSize = imageBuffer.length;
-        console.log(`[extractPdfWithGhostscript] Page ${pageNum} image size: ${imageSize} bytes`);
-        
-        // Perform OCR on the rendered image
-        const { data: { text } } = await Tesseract.recognize(imageBuffer, 'eng', {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              console.log(`[extractPdfWithGhostscript] Page ${pageNum} OCR progress: ${Math.round(m.progress * 100)}%`);
-            }
-          }
-        });
-        
-        const wordCount = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-        console.log(`[extractPdfWithGhostscript] Page ${pageNum}: ${wordCount} words extracted`);
-        
-        if (text.trim()) {
-          allText += `\n\n--- Page ${pageNum} ---\n\n${text.trim()}`;
-        }
-        
-        // Clean up image file
-        // TEMPORARILY DISABLED FOR DEBUGGING - files preserved in %TEMP%
-        // fs.unlinkSync(imagePath);
-        console.log(`[extractPdfWithGhostscript] 🔍 PNG PRESERVED: ${imagePath}`);
-        
+    const data = await rawPdfParse(pdfBuffer);
+    return data.text || '';
+  } catch (error) {
+    console.error(`[extractPdfWithGhostscript] ❌ Basic extraction failed:`, error);
+    return '';
+  }
+}        
       } catch (pageError) {
         console.error(`[extractPdfWithGhostscript] Error processing page ${pageNum}:`, pageError.message);
       }

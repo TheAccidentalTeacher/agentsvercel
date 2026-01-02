@@ -1,12 +1,10 @@
 // Phase 11 Week 2: Document Processing (Text Extraction)
-// Extracts text from uploaded documents (PDF, DOCX, TXT, EPUB, XLSX, Images)
+// Extracts text from uploaded documents (PDF, DOCX, TXT, XLSX)
 
 const { createClient } = require('@supabase/supabase-js');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
-const epubParser = require('epub-parser');
 const XLSX = require('xlsx');
-const Tesseract = require('tesseract.js');
 
 // Initialize Supabase client with service role key (bypasses RLS)
 const supabaseUrl = process.env.SUPABASE_URL;
