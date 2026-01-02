@@ -2,9 +2,12 @@
 [build]
   publish = "."
   functions = "netlify/functions"
-  # Supabase anon key and URL are SAFE to expose (frontend-safe, RLS-protected)
-  # These MUST be in frontend code for Supabase auth to work
-  environment = { SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY" }
+  environment = { 
+    # Frontend-safe keys that MUST be in code (RLS-protected)
+    SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY,OPENCLIPART_BASE_URL",
+    # Exclude documentation and example files from scanning
+    SECRETS_SCAN_OMIT_PATHS = ".env.example,NETLIFY_ENV_SETUP.md,DEPLOYMENT_CHECKLIST.md,CURRENT_STATUS.md,test-key.html,docs/**"
+  }
 
 # Function settings
 [functions]
