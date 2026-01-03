@@ -198,7 +198,7 @@ Game Editor/
 
 **12 Specialized Personas**:
 - Core Council: Master Teacher, Classical Educator, Strategist, Theologian
-- Specialists: Technical Architect, Writer, Analyst, Debugger, UX Designer, Marketing Strategist, Game Designer, Gen-Alpha Expert
+- Specialists: Technical Architect, Writer, Analyst, Debugger, UX Designer, Marketing Strategist, Gamification Designer, Gen-Alpha Expert
 
 **Three Modes**:
 1. **Panel** - All agents respond sequentially

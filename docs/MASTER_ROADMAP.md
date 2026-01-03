@@ -198,14 +198,14 @@ const TOOLTIPS = {
     
     <div class="ai-messages" id="ai-messages">
       <div class="ai-message system">
-        Welcome! I'm your AI level design assistant. I can analyze your layout, answer questions, and make changes to your level. Configure your API key to get started.
+        Welcome! I'm your AI educational content assistant. I can analyze your curriculum, answer questions, and help you create engaging learning experiences. Configure your API key to get started.
       </div>
     </div>
     
     <div class="ai-input-container">
       <textarea 
         id="ai-input" 
-        placeholder="Ask about your level or request changes..." 
+        placeholder="Ask about your content or request help with curriculum design..." 
         rows="3"
         title="Type your message to the AI assistant. Press Enter to send, Shift+Enter for new line."></textarea>
       <div class="ai-input-actions">
@@ -641,19 +641,19 @@ buildMessageHistory() {
 }
 
 buildSystemPrompt() {
-  return `You are an AI assistant integrated into the Universal Game Level Editor.
-You help users design 2D game levels by answering questions and providing guidance.
+  return `You are an AI assistant integrated into Hypomnemata, an educational content creation platform.
+You help users design curriculum and create learning materials by answering questions and providing guidance.
 
-Current editor state:
+Current workspace:
 - Canvas size: ${this.editor.canvas.width}x${this.editor.canvas.height}
 - Background: ${this.editor.background ? 'loaded' : 'none'}
 - Objects: ${this.editor.objects.length} total
 
 You have deep knowledge of:
-- Game design principles
-- Level design patterns
-- Object placement strategies
-- Balance and difficulty curves
+- Educational design principles
+- Curriculum structure patterns
+- Content organization strategies
+- Learning progression and scaffolding
 
 Be helpful, specific, and proactive.`;
 }
@@ -967,14 +967,14 @@ async sendMessage(userMessage) {
 buildSystemPrompt() {
   const editorState = this.toolExecutor.handle_get_editor_state({});
   
-  return `You are an AI assistant integrated into the Universal Game Level Editor. You help users design 2D game levels by answering questions, analyzing layouts, and **taking action using your tools**.
+  return `You are an AI assistant integrated into Hypomnemata, an educational content creation platform. You help users design curriculum, create learning materials, and develop engaging educational experiences.
 
 ## Your Capabilities
 
 You can:
-1. Answer questions about game design and level creation
-2. Analyze level layouts for balance, difficulty, and design quality
-3. **Use tools to directly manipulate the editor** - move objects, resize them, delete them, arrange them in patterns
+1. Answer questions about curriculum design and content creation
+2. Analyze learning materials for clarity, engagement, and pedagogical quality
+3. **Use tools to directly support content development** - organize resources, structure lessons, create assessments
 4. Provide specific, actionable advice
 5. Learn from the conversation and build on previous interactions
 
@@ -992,21 +992,21 @@ ${AI_TOOLS.map(t => `- ${t.name}: ${t.description}`).join('\n')}
 1. **Be proactive**: Don't just describe what to do - actually DO IT using tools
 2. **Confirm actions**: Before major changes (deleting multiple objects), confirm with user
 3. **Be specific**: When referencing objects, use their exact IDs or names
-4. **Think like a designer**: Consider balance, flow, difficulty curves, player psychology
-5. **Explain reasoning**: When suggesting changes, explain the game design principles
+4. **Think like an educator**: Consider learning objectives, scaffolding, differentiation, learner engagement
+5. **Explain reasoning**: When suggesting changes, explain the educational design principles
 6. **Use tools liberally**: If user says "move that left", actually move it
 7. **Multi-step operations**: You can call multiple tools in sequence for complex tasks
 
 ## Example Interactions
 
-User: "These enemies are too close together"
-You: [analyze layout] → [use move_object on each enemy] → "I've spread them out for better spacing"
+User: "This lesson needs more engagement"
+You: [analyze content] → [suggest interactive elements] → "I've added discussion prompts and hands-on activities"
 
-User: "Make this level more interesting"
-You: [analyze_level_layout] → [suggest specific changes] → [offer to implement them]
+User: "Create a quiz for this unit"
+You: [analyze learning objectives] → [generate assessment items] → [offer quiz structure]
 
-User: "Arrange these in a circle"
-You: [calculate positions] → [use move_object for each] → "Arranged in circular pattern"
+User: "Structure this curriculum"
+You: [identify key concepts] → [suggest lesson sequence] → "Organized into 5 progressive units"
 
 Remember: You're a collaborative co-designer. Take initiative and take action!`;
 }
@@ -1398,11 +1398,11 @@ class AutoAnalyzer {
 **File**: `docs/AI_HELP.md` (comprehensive guide for AI)
 
 **Sections**:
-1. Editor Capabilities
+1. Platform Capabilities
 2. Tool Reference (all 20+ tools)
 3. Common Tasks & Examples
-4. Game Design Best Practices
-5. Level Design Patterns
+4. Educational Design Best Practices
+5. Curriculum Structure Patterns
 6. Troubleshooting Guide
 7. API Reference
 8. Example Conversations
@@ -1411,9 +1411,9 @@ class AutoAnalyzer {
 ```markdown
 # AI Assistant Help Documentation
 
-## Editor Capabilities
+## Platform Capabilities
 
-The Universal Game Level Editor allows users to...
+Hypomnemata allows users to...
 
 ## Tool Reference
 
@@ -1421,49 +1421,49 @@ The Universal Game Level Editor allows users to...
 **Purpose**: Get complete current state
 **Parameters**: None
 **Returns**: Canvas info, background status, all objects
-**Example**: User asks "what's in my level?"
+**Example**: User asks "what's in my workspace?"
 
 ### move_object
-**Purpose**: Reposition an object
+**Purpose**: Reposition content elements
 **Parameters**: object_id, x, y
 **Returns**: Success confirmation
-**Example**: "Move enemy1 to the center"
+**Example**: "Move this text block to the center"
 ...
 
 ## Common Tasks
 
-### Task: Analyzing a Level
-1. Use get_editor_state to see all objects
-2. Use analyze_level_layout for insights
-3. Check spacing with analyze_spacing
+### Task: Analyzing Curriculum
+1. Use get_editor_state to see all elements
+2. Use analyze_content for insights
+3. Check organization with analyze_structure
 4. Provide specific feedback
 
-### Task: Improving Balance
-1. Analyze object distribution
-2. Identify clustering vs sparse areas
-3. Suggest specific movements
+### Task: Improving Engagement
+1. Analyze content distribution
+2. Identify pacing issues
+3. Suggest specific improvements
 4. Offer to implement automatically
 ...
 
-## Game Design Best Practices
+## Educational Design Best Practices
 
-### Tower Defense
-- Path should have natural choke points
-- Tower placement zones near curves
-- Enemy spawn rate increases with waves
+### Unit Structure
+- Learning objectives should be clear and measurable
+- Scaffolding increases complexity gradually
+- Assessment aligned with objectives
 ...
 
-### Platformers
-- Jump distance: 3-5 character widths
-- Hazards visible before committed to jump
-- Collectibles guide player through level
+### Lesson Design
+- Hook: Engage learners in first 5 minutes
+- Direct instruction: Clear, concise explanations
+- Guided practice: Support before independence
 ...
 ```
 
 **Checklist**:
 - [ ] Document all tools comprehensively
 - [ ] Add 50+ example tasks
-- [ ] Include game design theory
+- [ ] Include educational design theory
 - [ ] Add troubleshooting section
 - [ ] Include conversation examples
 - [ ] Review for completeness
@@ -1521,7 +1521,7 @@ Always check the documentation when unsure.`;
         <a href="#capabilities">Capabilities</a>
         <a href="#tools">AI Tools</a>
         <a href="#examples">Examples</a>
-        <a href="#design">Game Design</a>
+        <a href="#design">Educational Design</a>
       </nav>
     </div>
     <div class="help-body">

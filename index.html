@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Game Level Editor</title>
+    <title>Hypomnemata - The Extended Mind Studio</title>
     
     <!-- Supabase Configuration (frontend-safe anon key with RLS) -->
     <meta name="supabase-url" content="https://kxctrosgcockwtrteizd.supabase.co">
     <meta name="supabase-anon-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4Y3Ryb3NnY29ja3d0cnRlaXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3ODA4MzIsImV4cCI6MjA4MTM1NjgzMn0.F9yb5rkd9UMLL3e7fD4xYWEVgIJgVR8HpMDcG84SMPE">
     
     <!-- Favicon (inline to avoid 404) -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
     
     <link rel="stylesheet" href="style-new.css">
     <link rel="stylesheet" href="context-panel-styles.css">
@@ -22,7 +22,7 @@
     <div id="app">
         <!-- Top Toolbar -->
         <div id="toolbar">
-            <h1>🎮 Game Level Editor</h1>
+            <h1>🧠 Hypomnemata</h1>
             <div class="toolbar-buttons">
                 <button id="load-background" title="Load background image (Ctrl+B)">📷 Load Background</button>
                 <button id="add-asset" title="Add sprite/asset (Ctrl+A)">➕ Add Asset</button>
@@ -34,7 +34,7 @@
                 
                 <!-- Autonomous Agents Button -->
                 <button id="autonomous-agents-btn" title="Manage autonomous tasks" onclick="showAutonomousDashboard()">
-                    🤖 Autonomous
+                    ⏱️ Autonomous
                     <span id="autonomous-badge">0</span>
                 </button>
                 
@@ -188,6 +188,10 @@
                         <button id="ai-restore" class="icon-btn" title="Restore Checkpoint - Go back to a previously saved conversation point. Perfect for exploring 'what if' scenarios or recovering from mistakes without losing your chat history." style="display: none;">↩️</button>
                         <button id="ai-settings" class="icon-btn" title="AI Settings - Configure API keys, choose AI models (GPT-4, Claude, etc.), adjust response behavior, temperature settings, and other advanced options.">⚙️</button>
                         <button id="show-multi-agent" class="icon-btn" title="Multi-Agent Consortium - Activate multiple specialized AI agents working together. Each agent has expertise in different areas and they collaborate to give you comprehensive answers.">🤖</button>
+                        <button id="autonomous-agents-btn" class="icon-btn" title="Autonomous Agents - Schedule background tasks that run automatically. Research topics, monitor content, and execute workflows on a schedule." onclick="showAutonomousDashboard()">
+                            ⏱️
+                            <span id="autonomous-badge" style="position: absolute; top: -4px; right: -4px; background: #f44336; color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: bold; display: none;">0</span>
+                        </button>
                         <button id="show-creative-studio" class="icon-btn" title="Creative Studio - Generate AI content including: images (DALL-E, Stable Diffusion), diagrams (flowcharts, architecture), code visualizations, videos, and other creative outputs.">🎨</button>
                         <button id="ai-clear" class="icon-btn" title="Clear Conversation - Start fresh with a clean chat. This removes all messages but keeps your settings and saved memories intact.">🗑️</button>
                         <button id="ai-toggle" class="icon-btn" title="Close AI Panel - Hide the assistant interface to maximize your workspace. Click the Consortium logo on the left edge to reopen anytime.">×</button>
@@ -213,15 +217,16 @@
 
                     <div class="ai-messages" id="ai-messages">
                         <div class="ai-message system">
-                            <p><strong>👋 Welcome to AI-Powered Level Design!</strong></p>
-                            <p>I'm your collaborative AI assistant. I can:</p>
+                            <p><strong>👋 Welcome to The Consortium!</strong></p>
+                            <p>Your collaborative AI assistant with specialized agents. I can:</p>
                             <ul>
-                                <li>Answer questions about game design</li>
-                                <li>Analyze your level layout</li>
-                                <li><strong>Actually manipulate objects</strong> in your level</li>
-                                <li>Suggest improvements and implement them</li>
+                                <li>Answer questions across multiple domains with expert agents</li>
+                                <li>Research topics using multiple sources (web, academic, YouTube)</li>
+                                <li>Analyze documents, create summaries, and extract insights</li>
+                                <li>Manage autonomous tasks that run in the background</li>
+                                <li>Build and search your knowledge base with memory system</li>
                             </ul>
-                            <p style="margin-top: 12px;">Click the ⚙️ settings button to configure your API key and get started!</p>
+                            <p style="margin-top: 12px;">Click the ⚙️ settings button to configure your API keys and get started!</p>
                         </div>
                     </div>
                     
@@ -257,13 +262,13 @@
                 <!-- Panel Header with Tabs -->
                 <div class="context-header">
                     <div class="context-title">
-                        <span id="context-auto-indicator" class="auto-indicator" title="Auto-switching enabled - The panel automatically changes based on what you're doing (chatting, uploading files, using multi-agent, etc.)">🤖</span>
+                        <span id="context-auto-indicator" class="auto-indicator" title="Auto-switching enabled - The panel automatically changes based on what you're doing (chatting, uploading files, using multi-agent, etc.)">⚡</span>
                         <h3 id="context-panel-title">Context Panel</h3>
                     </div>
                     <div class="context-tabs">
                         <button class="context-tab" data-panel="document" title="Document Intelligence - View uploaded files with live preview, OCR text extraction, and document analysis. See your PDFs, images, and documents right in the interface.">📄</button>
                         <button class="context-tab" data-panel="knowledge" title="Knowledge Graph - Interactive visualization showing how the AI connects concepts, memories, and information. See the relationships between everything you've discussed.">🕸️</button>
-                        <button class="context-tab" data-panel="agents" title="Agent Monitor - Watch multiple AI agents working together in real-time. See their thinking process, status, and collaboration when using the multi-agent consortium.">🤖</button>
+                        <button class="context-tab" data-panel="agents" title="Agent Monitor - Watch multiple AI agents working together in real-time. See their thinking process, status, and collaboration when using the multi-agent consortium.">👁️</button>
                         <button class="context-tab" data-panel="context-aware" title="Context Awareness - See what the AI remembers from your conversation, key discussion points, and smart follow-up suggestions. The AI uses this to stay contextually relevant.">🧠</button>
                         <button class="context-tab" data-panel="gallery" title="Output Gallery - Visual collection of all AI-generated content: images, diagrams, code snippets, charts, and creative outputs. Easy access to everything the AI has created for you.">🖼️</button>
                         <button class="context-tab" data-panel="research" title="Research Assistant - Real-time web search results, fact checking, source citations, and references. The AI verifies information and provides credible sources.">🔍</button>
@@ -299,7 +304,7 @@
                     <!-- 3. Multi-Agent Activity Monitor -->
                     <div class="context-panel-item" id="panel-agents" style="display: none;">
                         <div class="agent-monitor">
-                            <h4>🤖 Active Agents</h4>
+                            <h4>👥 Active Agents</h4>
                             <div id="agent-status-list" class="agent-list">
                                 <div class="agent-status-empty">
                                     <p>No agents currently active</p>
@@ -550,7 +555,7 @@
     <!-- Autonomous Agents Dashboard (hidden by default) -->
     <div id="autonomous-tasks-container" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="margin: 0;">🤖 Autonomous Agents Dashboard</h2>
+            <h2 style="margin: 0;">⏱️ Autonomous Agents Dashboard</h2>
             <div style="display: flex; gap: 12px;">
                 <button onclick="autonomousAgents.showCreateModal()" class="btn-primary">
                     ⏰ Create Task
@@ -2152,35 +2157,87 @@
     <script src="multi-file-handler.js"></script>
     <script src="multi-model.js"></script>
     <script src="expert-panels.js"></script>
-    <script src="autonomous-agents.js"></script>
+<script src="autonomous-agents.js?v=20251225-fix2"></script>
+            if (typeof AutonomousAgents !== 'undefined') {
+                window.autonomousAgents = new AutonomousAgents();
+                console.log('✅ Autonomous Agents initialized');
+            } else {
+                console.error('❌ AutonomousAgents class not found');
+            }
+        });
+    </script>
     
-    <!-- Help Button Handler -->
+    <!-- Help Button Handler & Autonomous Agents -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const helpBtn = document.getElementById('help-btn');
+        console.log('🔧 [DEBUG] Script block starting...');
+        
+        // Define functions on window object
+        window.showAutonomousDashboard = function() {
+            console.log('🤖 [Autonomous] showAutonomousDashboard called');
+            var dashboard = document.getElementById('autonomous-tasks-container');
+            var canvas = document.getElementById('canvas-container');
+            var aiPanel = document.getElementById('ai-panel');
+            
+            if (dashboard) {
+                dashboard.style.display = 'block';
+                console.log('✅ [Autonomous] Dashboard shown');
+            }
+            
+            if (canvas) {
+                canvas.style.display = 'none';
+            }
+            if (aiPanel) {
+                aiPanel.style.display = 'none';
+            }
+            
+            // Check if Supabase is loaded before initializing
+            if (typeof window.supabase === 'undefined') {
+                console.error('❌ [Autonomous] Supabase not loaded yet');
+                alert('Supabase is still loading. Please wait a moment and try again.');
+                return;
+            }
+            
+            if (window.autonomousAgents && !window.autonomousAgents.isInitialized) {
+                window.autonomousAgents.init();
+            }
+        };
+        
+        window.hideAutonomousDashboard = function() {
+            var container = document.getElementById('autonomous-tasks-container');
+            var canvas = document.getElementById('canvas-container');
+            var aiPanel = document.getElementById('ai-panel');
+            
+            if (container) container.style.display = 'none';
+            if (canvas) canvas.style.display = 'block';
+            if (aiPanel) aiPanel.style.display = 'block';
+        };
+        
+        console.log('✅ [DEBUG] Functions defined');
+        console.log('✅ [DEBUG] Function type:', typeof window.showAutonomousDashboard);
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 [DEBUG] DOM ready');
+            
+            var helpBtn = document.getElementById('help-btn');
             if (helpBtn) {
-                helpBtn.addEventListener('click', () => {
+                helpBtn.addEventListener('click', function() {
                     window.open('help.html', '_blank', 'width=1200,height=800');
                 });
             }
+            
+            var autonomousBtn = document.getElementById('autonomous-agents-btn');
+            console.log('🔍 [DEBUG] Button:', autonomousBtn);
+            
+            if (autonomousBtn) {
+                autonomousBtn.addEventListener('click', function(e) {
+                    console.log('🤖 [Autonomous] Click fired');
+                    window.showAutonomousDashboard();
+                });
+                console.log('✅ [DEBUG] Listener attached');
+            }
         });
         
-        // Autonomous Agents Dashboard Toggle
-        function showAutonomousDashboard() {
-            document.getElementById('autonomous-tasks-container').style.display = 'block';
-            document.getElementById('canvas-container')?.style.display = 'none';
-            document.getElementById('ai-panel')?.style.display = 'none';
-        }
-        
-        function hideAutonomousDashboard() {
-            document.getElementById('autonomous-tasks-container').style.display = 'none';
-            document.getElementById('canvas-container')?.style.display = 'block';
-            document.getElementById('ai-panel')?.style.display = 'block';
-        }
-        
-        // Make functions globally accessible
-        window.showAutonomousDashboard = showAutonomousDashboard;
-        window.hideAutonomousDashboard = hideAutonomousDashboard;
+        console.log('🔧 [DEBUG] Script complete');
     </script>
     
     <script type="module">

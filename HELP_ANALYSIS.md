@@ -78,7 +78,7 @@ The current **help.html** (in-app help page) is a **solid foundation** covering 
 ```
 
 **Currently in help.html:** Only shows 4 personas (Master Teacher, Theologian, Strategist, Creative Designer, Content Writer)  
-**Missing:** Debugger, Analyst, Technical Architect, UX Designer, Game Designer, Classical Educator, Gen-Alpha Expert, Marketing Strategist
+**Missing:** Debugger, Analyst, Technical Architect, UX Designer, Gamification Designer, Classical Educator, Gen-Alpha Expert, Marketing Strategist
 
 **Recommendation:** Expand AI Consortium section to include ALL 12 personas with examples
 
