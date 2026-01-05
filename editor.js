@@ -306,6 +306,17 @@ class GameEditor {
             this.sendAIMessage();
         });
 
+        // Auto-save web search preference when toggled
+        const webSearchToggle = document.getElementById('web-search-toggle');
+        if (webSearchToggle) {
+            webSearchToggle.addEventListener('change', () => {
+                const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+                config.web_search = webSearchToggle.checked;
+                localStorage.setItem('ai_config', JSON.stringify(config));
+                console.log('[Web Search] Toggle saved:', webSearchToggle.checked);
+            });
+        }
+
         // Checkpoint controls
         document.getElementById('ai-checkpoint').addEventListener('click', () => {
             this.saveCheckpoint();
@@ -502,6 +513,14 @@ class GameEditor {
             const hints = document.getElementById('keyboard-hints');
             if (hints) hints.style.display = 'flex';
             
+            // Load web search preference (default to disabled for user control)
+            const webSearchToggle = document.getElementById('web-search-toggle');
+            if (webSearchToggle) {
+                const webSearchEnabled = config.web_search !== undefined ? config.web_search : false;
+                webSearchToggle.checked = webSearchEnabled;
+                console.log('[AI Config] ✓ Web search toggle set to:', webSearchEnabled);
+            }
+            
             // Initialize conversation history
             this.conversationHistory = [];
             console.log('[AI Config] ✓ Conversation history initialized (empty array)');
@@ -524,7 +543,8 @@ class GameEditor {
             openai_model: document.getElementById('openai-model').value,
             persona: document.getElementById('ai-persona').value,
             auto_analyze: document.getElementById('ai-auto-analyze').checked,
-            enable_images: document.getElementById('ai-enable-images').checked
+            enable_images: document.getElementById('ai-enable-images').checked,
+            web_search: document.getElementById('web-search-toggle')?.checked || false
         };
 
         try {
@@ -1513,32 +1533,42 @@ class GameEditor {
             // Update UI to show active persona
             this.updatePersonaIndicator(persona);
             
-            const requestBody = {
-                provider: provider,
-                model: model,
-                messages: messageHistory,
-                editorState: editorState,
-                enableImages: enableImages,
-                persona: persona
-            };
+            // Check if web search is enabled
+            const webSearchEnabled = document.getElementById('web-search-toggle')?.checked || false;
             
-            console.log('[AI Message] 🌐 Making fetch request to /.netlify/functions/chat');
-            console.log('[AI Message] Request body:', JSON.stringify(requestBody, null, 2));
-            
-            const fetchStartTime = performance.now();
-            
-            const response = await fetch('/.netlify/functions/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-            
-            const fetchEndTime = performance.now();
-            const fetchDuration = (fetchEndTime - fetchStartTime).toFixed(2);
-            
-            console.log(`[AI Message] ✓ Fetch completed in ${fetchDuration}ms`);
-            console.log('[AI Message] Response status:', response.status, response.statusText);
-            console.log('[AI Message] Response headers:', Object.fromEntries(response.headers.entries()));
+        // Show web search indicator if enabled
+        let searchIndicatorId = null;
+        if (webSearchEnabled) {
+            searchIndicatorId = this.addSearchingIndicator();
+        }
+        
+        const requestBody = {
+            provider: provider,
+            model: model,
+            messages: messageHistory,
+            editorState: editorState,
+            enableImages: enableImages,
+            persona: persona,
+            webSearch: webSearchEnabled
+        };
+        
+        console.log('[AI Message] 🌐 Making fetch request to /.netlify/functions/chat');
+        console.log('[AI Message] Request body:', JSON.stringify(requestBody, null, 2));
+        
+        const fetchStartTime = performance.now();
+        
+        const response = await fetch('/.netlify/functions/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const fetchEndTime = performance.now();
+        const fetchDuration = (fetchEndTime - fetchStartTime).toFixed(2);
+        
+        console.log(`[AI Message] ✓ Fetch completed in ${fetchDuration}ms`);
+        console.log('[AI Message] Response status:', response.status, response.statusText);
+        console.log('[AI Message] Response headers:', Object.fromEntries(response.headers.entries()));
 
             if (!response.ok) {
                 console.error('[AI Message] ❌ Response not OK:', response.status);
@@ -1573,9 +1603,16 @@ class GameEditor {
             // Add assistant response
             console.log('[AI Message] Adding assistant response to chat UI...');
             
+            // Remove searching indicator if it exists
+            if (searchIndicatorId) {
+                this.removeSearchingIndicator(searchIndicatorId);
+            }
+            
             // Get friendly model name
             const modelName = this.getFriendlyModelName(data.model);
-            this.addMessage('assistant', data.content[0].text, true, modelName);
+            
+            // Add message with web search badge if it was used
+            this.addMessage('assistant', data.content[0].text, true, modelName, webSearchEnabled, data.sources);
             console.log('[AI Message] ✅ Assistant response added successfully');
             
             // Save assistant response to persistent chat history
@@ -1614,7 +1651,7 @@ class GameEditor {
         }
     }
 
-    addMessage(role, content, isEditable = true, modelName = null) {
+    addMessage(role, content, isEditable = true, modelName = null, webSearchUsed = false, sources = null) {
         console.group(`💭 Adding ${role} message`);
         
         console.log('[Add Message] Role:', role);
@@ -1622,6 +1659,8 @@ class GameEditor {
         console.log('[Add Message] Content preview:', content?.substring(0, 100) + (content?.length > 100 ? '...' : ''));
         console.log('[Add Message] Editable:', isEditable);
         console.log('[Add Message] Model:', modelName);
+        console.log('[Add Message] Web Search Used:', webSearchUsed);
+        console.log('[Add Message] Sources:', sources?.length || 0);
         
         const messagesContainer = document.getElementById('ai-messages');
         console.log('[Add Message] Messages container found:', !!messagesContainer);
@@ -1640,14 +1679,29 @@ class GameEditor {
             ? `<span class="ai-model-badge">${modelName}</span>` 
             : '';
         
+        // Show web search badge if used
+        const webSearchBadge = (role === 'assistant' && webSearchUsed)
+            ? `<span class="web-search-badge" title="This response used real-time web search">🌐 Web Search</span>`
+            : '';
+        
         const headerDiv = document.createElement('div');
         headerDiv.className = 'ai-message-header';
         headerDiv.innerHTML = `
             <span class="ai-message-role">${role === 'user' ? 'You' : (role === 'system' ? 'System' : 'AI')}</span>
             ${modelBadge}
+            ${webSearchBadge}
             <span class="ai-message-time">${timeStr}</span>
         `;
         messageDiv.appendChild(headerDiv);
+        
+        // Add sources if available
+        if (role === 'assistant' && sources && sources.length > 0) {
+            const sourcesDiv = document.createElement('div');
+            sourcesDiv.className = 'web-search-sources';
+            sourcesDiv.innerHTML = '<strong>Sources:</strong> ' + 
+                sources.map(s => `<a href="${s.url}" target="_blank" title="${s.title}">${new URL(s.url).hostname}</a>`).join(' • ');
+            messageDiv.appendChild(sourcesDiv);
+        }
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
@@ -1849,6 +1903,43 @@ class GameEditor {
         this.addMessage('system', `↩️ Checkpoint restored (saved ${timeSince}s ago, ${checkpoint.messageCount} messages).`);
         
         console.groupEnd();
+    }
+
+    addSearchingIndicator() {
+        const messagesContainer = document.getElementById('ai-messages');
+        const indicatorDiv = document.createElement('div');
+        const indicatorId = 'search-indicator-' + Date.now();
+        indicatorDiv.id = indicatorId;
+        indicatorDiv.className = 'ai-message system searching-indicator';
+        indicatorDiv.innerHTML = `
+            <div class="ai-message-header">
+                <span class="ai-message-role">System</span>
+            </div>
+            <div class="message-content">
+                <div class="searching-animation">
+                    <span class="search-icon">🔍</span>
+                    <span class="search-text">Searching the web...</span>
+                    <div class="search-dots">
+                        <span>.</span><span>.</span><span>.</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        messagesContainer.appendChild(indicatorDiv);
+        
+        // Scroll to show the indicator
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        console.log('[Web Search] Added searching indicator:', indicatorId);
+        return indicatorId;
+    }
+
+    removeSearchingIndicator(indicatorId) {
+        const indicator = document.getElementById(indicatorId);
+        if (indicator) {
+            indicator.remove();
+            console.log('[Web Search] Removed searching indicator:', indicatorId);
+        }
     }
 
     getEditorState() {

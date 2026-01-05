@@ -877,6 +877,103 @@ button:active {
     margin-right: 8px;
 }
 
+/* Web Search Badge */
+.web-search-badge {
+    font-size: 9px;
+    background: #0078d4;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-left: 6px;
+    cursor: help;
+}
+
+/* Web Search Sources */
+.web-search-sources {
+    font-size: 11px;
+    color: #999;
+    padding: 6px 12px;
+    background: rgba(0, 120, 212, 0.1);
+    border-left: 2px solid #0078d4;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.web-search-sources strong {
+    color: #0078d4;
+    margin-right: 8px;
+}
+
+.web-search-sources a {
+    color: #569cd6;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.web-search-sources a:hover {
+    color: #4fc3f7;
+    text-decoration: underline;
+}
+
+/* Searching Indicator Animation */
+.searching-indicator {
+    background: rgba(0, 120, 212, 0.05) !important;
+    border-left: 3px solid #0078d4 !important;
+}
+
+.searching-animation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-icon {
+    font-size: 16px;
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.search-text {
+    color: #0078d4;
+    font-weight: 500;
+}
+
+.search-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.search-dots span {
+    animation: blink 1.4s infinite;
+    color: #0078d4;
+    font-weight: bold;
+}
+
+.search-dots span:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.search-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.search-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0%, 20% { opacity: 0.2; }
+    50% { opacity: 1; }
+    100% { opacity: 0.2; }
+}
+
 .ai-message.system {
     background: #2d2d30;
     border-left: 3px solid #007acc;
@@ -1188,6 +1285,31 @@ button:active {
     justify-content: space-between;
     align-items: center;
     margin-top: 8px;
+}
+
+.web-search-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #cccccc;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.web-search-toggle:hover {
+    background: #2d2d30;
+}
+
+.web-search-toggle input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.web-search-toggle span {
+    cursor: pointer;
 }
 
 .keyboard-hints {

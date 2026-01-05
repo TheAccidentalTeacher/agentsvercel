@@ -65,10 +65,11 @@ exports.handler = async (event, context) => {
     console.log('[Function] ✓ Body parsed successfully');
     console.log('[Function] Parsed body keys:', Object.keys(parsedBody));
     
-    const { provider, model, messages, editorState, enableImages, persona } = parsedBody;
+    const { provider, model, messages, editorState, enableImages, persona, webSearch } = parsedBody;
     console.log('[Function] Provider:', provider || 'anthropic (default)');
     console.log('[Function] Model:', model || 'auto-select');
     console.log('[Function] Persona:', persona || 'default');
+    console.log('[Function] Web Search:', webSearch ? 'enabled' : 'disabled');
     console.log('[Function] Messages array length:', messages?.length || 0);
     console.log('[Function] Messages:', JSON.stringify(messages, null, 2));
     console.log('[Function] Editor state keys:', editorState ? Object.keys(editorState) : 'null');
@@ -128,10 +129,40 @@ exports.handler = async (event, context) => {
     console.log('[Function] ✓ API key found (length:', apiKey.length, 'chars)');
     console.log('[Function] API key prefix:', apiKey.substring(0, 12) + '...');
 
+    // Perform web search if enabled
+    let webSearchResults = '';
+    let searchSources = [];
+    if (webSearch && messages.length > 0) {
+      console.log('[Function] 🔍 Web search enabled, performing Tavily search...');
+      const lastUserMessage = messages[messages.length - 1];
+      if (lastUserMessage.role === 'user') {
+        const tavilyKey = process.env.TAVILY_API_KEY;
+        if (tavilyKey) {
+          try {
+            const searchResults = await performTavilySearch(lastUserMessage.content, tavilyKey);
+            webSearchResults = formatSearchResults(searchResults);
+            searchSources = searchResults.map(r => ({ title: r.title, url: r.url }));
+            console.log('[Function] ✓ Web search completed:', searchResults.length, 'results');
+          } catch (error) {
+            console.error('[Function] ⚠️ Web search failed:', error.message);
+          }
+        } else {
+          console.log('[Function] ⚠️ TAVILY_API_KEY not configured, skipping web search');
+        }
+      }
+    }
+
     // Build system prompt with editor context and persona
     console.log('[Function] 📝 Building system prompt with editor context and persona...');
     const systemPromptStartTime = Date.now();
-    const systemPrompt = await buildSystemPrompt(editorState, enableImages, persona);
+    let systemPrompt = await buildSystemPrompt(editorState, enableImages, persona);
+    
+    // Append web search results to system prompt if available
+    if (webSearchResults) {
+      systemPrompt += `\n\n## Web Search Results\n${webSearchResults}`;
+      console.log('[Function] ✓ Added web search results to system prompt');
+    }
+    
     const systemPromptDuration = Date.now() - systemPromptStartTime;
     console.log('[Function] ✓ System prompt built in', systemPromptDuration, 'ms');
     console.log('[Function] System prompt length:', systemPrompt.length, 'chars');
@@ -224,6 +255,12 @@ exports.handler = async (event, context) => {
     console.log('[Function] Response type:', typeof response);
     console.log('[Function] Response keys:', Object.keys(response));
     console.log('[Function] Response:', JSON.stringify(response, null, 2));
+
+    // Add sources to response if web search was used
+    if (searchSources.length > 0) {
+      response.sources = searchSources;
+      console.log('[Function] ✓ Added', searchSources.length, 'sources to response');
+    }
 
     // Return successful response
     const totalDuration = Date.now() - startTime;
@@ -558,3 +595,82 @@ function callOpenAIAPI(apiKey, requestData) {
     console.log('[callOpenAIAPI] ✓ Request sent, awaiting response...');
   });
 }
+
+/**
+ * Perform Tavily web search
+ * @param {string} query - Search query
+ * @param {string} apiKey - Tavily API key
+ * @returns {Promise<Array>} Search results
+ */
+async function performTavilySearch(query, apiKey) {
+  console.log('[Tavily] 🔍 Performing search for:', query);
+  
+  const postData = JSON.stringify({
+    api_key: apiKey,
+    query: query,
+    search_depth: 'basic',
+    max_results: 5,
+    include_answer: true,
+    include_raw_content: false
+  });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.tavily.com',
+      port: 443,
+      path: '/search',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          console.log('[Tavily] ✓ Search completed:', parsed.results?.length || 0, 'results');
+          resolve(parsed.results || []);
+        } catch (e) {
+          console.error('[Tavily] ❌ Parse error:', e.message);
+          reject(e);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error('[Tavily] ❌ Request error:', e.message);
+      reject(e);
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+/**
+ * Format search results for inclusion in system prompt
+ * @param {Array} results - Tavily search results
+ * @returns {string} Formatted results
+ */
+function formatSearchResults(results) {
+  if (!results || results.length === 0) {
+    return 'No search results found.';
+  }
+
+  let formatted = 'The following information was found from recent web searches:\n\n';
+  
+  results.forEach((result, index) => {
+    formatted += `**Source ${index + 1}**: ${result.title}\n`;
+    formatted += `URL: ${result.url}\n`;
+    formatted += `${result.content}\n\n`;
+  });
+
+  formatted += '\nUse this information to provide accurate, up-to-date responses. Cite sources when appropriate.';
+  
+  return formatted;
+}
+
