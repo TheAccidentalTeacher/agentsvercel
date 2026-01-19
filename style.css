@@ -3941,6 +3941,12 @@ button:active {
     border: 1px solid #3b82f6;
 }
 
+.transcript-source-indicator .source-badge.gemini {
+    background: linear-gradient(135deg, #4a1a5f 0%, #6a2d8f 100%);
+    color: #c084fc;
+    border: 1px solid #a855f7;
+}
+
 .transcript-source-indicator .source-details {
     color: #888;
     font-size: 12px;
@@ -3963,6 +3969,11 @@ button:active {
     border-radius: 8px;
     padding: 12px 16px;
     border: 1px solid #3d3d3d;
+}
+
+.stat-item.source-stat.gemini {
+    border-color: #a855f7;
+    background: linear-gradient(135deg, #4a1a5f20 0%, #6a2d8f20 100%);
 }
 
 .stat-item.source-stat.whisper {

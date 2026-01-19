@@ -5,7 +5,10 @@
  * Browser version proxies requests through server
  * 
  * Phase 8: Video Intelligence
- * Phase 8.5: Whisper AI Fallback for videos without captions
+ * Phase 8.5: Multi-tier fallback system:
+ *   1. YouTube Captions (free, instant)
+ *   2. OpenAI Whisper (audio extraction)
+ *   3. Google Gemini (video understanding - most reliable)
  */
 
 import { extractVideoId } from './youtube-api.js';
@@ -15,27 +18,30 @@ import { extractVideoId } from './youtube-api.js';
  */
 export const TRANSCRIPT_SOURCE = {
   YOUTUBE_CAPTIONS: 'youtube-captions',
-  WHISPER_AI: 'whisper-ai'
+  WHISPER_AI: 'whisper-ai',
+  GEMINI_AI: 'gemini-ai'
 };
 
 /**
- * Fetch transcript for a YouTube video with Whisper fallback
+ * Fetch transcript for a YouTube video with multi-tier fallback
  * @param {string} videoIdOrUrl - YouTube video ID or full URL
  * @param {string} language - Language code (e.g., 'en', 'es', 'fr')
  * @param {Object} options - Options for transcript fetching
- * @param {boolean} options.allowWhisperFallback - Enable Whisper AI fallback (default: true)
+ * @param {boolean} options.allowFallback - Enable AI fallbacks (default: true)
  * @param {Function} options.onStatusUpdate - Callback for status updates
  * @returns {Promise<Object>} Transcript data with segments and source metadata
  */
 export async function getTranscript(videoIdOrUrl, language = 'en', options = {}) {
   const { 
-    allowWhisperFallback = true, 
+    allowFallback = true,
+    allowWhisperFallback = true,  // Legacy support
     onStatusUpdate = null 
   } = options;
   
   const videoId = extractVideoId(videoIdOrUrl) || videoIdOrUrl;
+  const enableFallback = allowFallback && allowWhisperFallback;
   
-  // First, try YouTube captions (free, fast)
+  // TIER 1: Try YouTube captions (free, fast)
   try {
     if (onStatusUpdate) onStatusUpdate('Checking for YouTube captions...');
     
@@ -49,7 +55,6 @@ export async function getTranscript(videoIdOrUrl, language = 'en', options = {})
 
     if (response.ok) {
       const transcriptData = await response.json();
-      // Add source metadata
       transcriptData.metadata = {
         ...transcriptData.metadata,
         source: TRANSCRIPT_SOURCE.YOUTUBE_CAPTIONS,
@@ -60,40 +65,41 @@ export async function getTranscript(videoIdOrUrl, language = 'en', options = {})
       return transcriptData;
     }
 
-    // Check if captions are simply not available (404)
+    // Check if captions are simply not available
     const errorData = await response.json().catch(() => ({}));
-    const noCaptions = response.status === 404 || 
-                       errorData.error?.includes('No transcript') ||
-                       errorData.error?.includes('not have captions');
-    
-    if (!noCaptions) {
-      // Some other error - throw it
-      throw new Error(errorData.error || 'Failed to fetch transcript');
-    }
-
-    // Captions not available - try Whisper fallback
-    if (!allowWhisperFallback) {
-      throw new Error('No captions available and Whisper fallback is disabled');
-    }
-
-    console.log('📝 No YouTube captions found, trying Whisper AI fallback...');
-    if (onStatusUpdate) onStatusUpdate('No captions found. Generating transcript with Whisper AI (may take 30-60 seconds)...');
+    console.log('📝 YouTube captions not available, trying AI fallbacks...');
 
   } catch (error) {
-    // If it's not a "no captions" error, check if we should try Whisper
-    if (!error.message.includes('No transcript') && 
-        !error.message.includes('not have captions') &&
-        !error.message.includes('No captions')) {
-      // Re-throw non-caption-related errors
-      if (!allowWhisperFallback) throw error;
-    }
-    
-    console.log('📝 YouTube captions failed, trying Whisper fallback...');
-    if (onStatusUpdate) onStatusUpdate('Generating transcript with Whisper AI...');
+    console.log('📝 YouTube captions failed:', error.message);
   }
 
-  // Whisper AI Fallback
-  return await getTranscriptWithWhisper(videoId, language, onStatusUpdate);
+  if (!enableFallback) {
+    throw new Error('No YouTube captions available and fallbacks are disabled');
+  }
+
+  // TIER 2: Try Whisper (works for shorter videos when audio extraction works)
+  try {
+    if (onStatusUpdate) onStatusUpdate('Trying Whisper AI transcription...');
+    
+    const whisperResult = await getTranscriptWithWhisper(videoId, language, onStatusUpdate);
+    return whisperResult;
+    
+  } catch (whisperError) {
+    console.log('📝 Whisper failed:', whisperError.message);
+    if (onStatusUpdate) onStatusUpdate('Whisper unavailable, trying Gemini AI...');
+  }
+
+  // TIER 3: Gemini Video Understanding (most reliable - Google owns YouTube)
+  try {
+    if (onStatusUpdate) onStatusUpdate('Using Gemini AI to transcribe video (30-90 seconds)...');
+    
+    const geminiResult = await getTranscriptWithGemini(videoId, language, onStatusUpdate);
+    return geminiResult;
+    
+  } catch (geminiError) {
+    console.error('📝 Gemini failed:', geminiError.message);
+    throw new Error(`All transcription methods failed. Last error: ${geminiError.message}`);
+  }
 }
 
 /**
@@ -139,6 +145,53 @@ export async function getTranscriptWithWhisper(videoId, language = 'en', onStatu
   } catch (error) {
     console.error('Whisper transcript error:', error);
     throw new Error(`Whisper AI transcription failed: ${error.message}`);
+  }
+}
+
+/**
+ * Fetch transcript using Google Gemini Video Understanding
+ * This is the most reliable method as Google owns YouTube
+ * @param {string} videoId - YouTube video ID
+ * @param {string} language - Language code
+ * @param {Function} onStatusUpdate - Callback for status updates
+ * @returns {Promise<Object>} Transcript data with segments
+ */
+export async function getTranscriptWithGemini(videoId, language = 'en', onStatusUpdate = null) {
+  try {
+    if (onStatusUpdate) onStatusUpdate('Gemini is watching the video...');
+    
+    const response = await fetch('/.netlify/functions/youtube-gemini-transcript', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ videoId, language })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Gemini transcription failed');
+    }
+
+    const transcriptData = await response.json();
+    
+    // Ensure metadata shows Gemini was used
+    transcriptData.metadata = {
+      ...transcriptData.metadata,
+      source: TRANSCRIPT_SOURCE.GEMINI_AI,
+      fallbackUsed: true
+    };
+    
+    if (onStatusUpdate) {
+      const cost = transcriptData.metadata?.costEstimate || 0;
+      onStatusUpdate(`Gemini transcript generated! (Est. cost: ~$${cost.toFixed(2)})`);
+    }
+    
+    return transcriptData;
+
+  } catch (error) {
+    console.error('Gemini transcript error:', error);
+    throw new Error(`Gemini AI transcription failed: ${error.message}`);
   }
 }
 
