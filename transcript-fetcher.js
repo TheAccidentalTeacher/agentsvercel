@@ -5,22 +5,109 @@
  * Browser version proxies requests through server
  * 
  * Phase 8: Video Intelligence
+ * Phase 8.5: Whisper AI Fallback for videos without captions
  */
 
 import { extractVideoId } from './youtube-api.js';
 
 /**
- * Fetch transcript for a YouTube video (via server proxy)
+ * Transcript source types
+ */
+export const TRANSCRIPT_SOURCE = {
+  YOUTUBE_CAPTIONS: 'youtube-captions',
+  WHISPER_AI: 'whisper-ai'
+};
+
+/**
+ * Fetch transcript for a YouTube video with Whisper fallback
  * @param {string} videoIdOrUrl - YouTube video ID or full URL
  * @param {string} language - Language code (e.g., 'en', 'es', 'fr')
- * @returns {Promise<Object>} Transcript data with segments
+ * @param {Object} options - Options for transcript fetching
+ * @param {boolean} options.allowWhisperFallback - Enable Whisper AI fallback (default: true)
+ * @param {Function} options.onStatusUpdate - Callback for status updates
+ * @returns {Promise<Object>} Transcript data with segments and source metadata
  */
-export async function getTranscript(videoIdOrUrl, language = 'en') {
+export async function getTranscript(videoIdOrUrl, language = 'en', options = {}) {
+  const { 
+    allowWhisperFallback = true, 
+    onStatusUpdate = null 
+  } = options;
+  
   const videoId = extractVideoId(videoIdOrUrl) || videoIdOrUrl;
   
+  // First, try YouTube captions (free, fast)
   try {
-    // Call server-side endpoint to fetch transcript
+    if (onStatusUpdate) onStatusUpdate('Checking for YouTube captions...');
+    
     const response = await fetch('/.netlify/functions/youtube-transcript', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ videoId, language })
+    });
+
+    if (response.ok) {
+      const transcriptData = await response.json();
+      // Add source metadata
+      transcriptData.metadata = {
+        ...transcriptData.metadata,
+        source: TRANSCRIPT_SOURCE.YOUTUBE_CAPTIONS,
+        costEstimate: 0,
+        fallbackUsed: false
+      };
+      if (onStatusUpdate) onStatusUpdate('YouTube captions loaded successfully!');
+      return transcriptData;
+    }
+
+    // Check if captions are simply not available (404)
+    const errorData = await response.json().catch(() => ({}));
+    const noCaptions = response.status === 404 || 
+                       errorData.error?.includes('No transcript') ||
+                       errorData.error?.includes('not have captions');
+    
+    if (!noCaptions) {
+      // Some other error - throw it
+      throw new Error(errorData.error || 'Failed to fetch transcript');
+    }
+
+    // Captions not available - try Whisper fallback
+    if (!allowWhisperFallback) {
+      throw new Error('No captions available and Whisper fallback is disabled');
+    }
+
+    console.log('📝 No YouTube captions found, trying Whisper AI fallback...');
+    if (onStatusUpdate) onStatusUpdate('No captions found. Generating transcript with Whisper AI (may take 30-60 seconds)...');
+
+  } catch (error) {
+    // If it's not a "no captions" error, check if we should try Whisper
+    if (!error.message.includes('No transcript') && 
+        !error.message.includes('not have captions') &&
+        !error.message.includes('No captions')) {
+      // Re-throw non-caption-related errors
+      if (!allowWhisperFallback) throw error;
+    }
+    
+    console.log('📝 YouTube captions failed, trying Whisper fallback...');
+    if (onStatusUpdate) onStatusUpdate('Generating transcript with Whisper AI...');
+  }
+
+  // Whisper AI Fallback
+  return await getTranscriptWithWhisper(videoId, language, onStatusUpdate);
+}
+
+/**
+ * Fetch transcript using OpenAI Whisper API
+ * @param {string} videoId - YouTube video ID
+ * @param {string} language - Language code
+ * @param {Function} onStatusUpdate - Callback for status updates
+ * @returns {Promise<Object>} Transcript data with segments
+ */
+export async function getTranscriptWithWhisper(videoId, language = 'en', onStatusUpdate = null) {
+  try {
+    if (onStatusUpdate) onStatusUpdate('Extracting audio from video...');
+    
+    const response = await fetch('/.netlify/functions/youtube-whisper-transcript', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -30,15 +117,58 @@ export async function getTranscript(videoIdOrUrl, language = 'en') {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch transcript');
+      throw new Error(error.error || 'Whisper transcription failed');
     }
 
     const transcriptData = await response.json();
+    
+    // Ensure metadata shows Whisper was used
+    transcriptData.metadata = {
+      ...transcriptData.metadata,
+      source: TRANSCRIPT_SOURCE.WHISPER_AI,
+      fallbackUsed: true
+    };
+    
+    if (onStatusUpdate) {
+      const cost = transcriptData.metadata?.costEstimate || 0;
+      onStatusUpdate(`Whisper transcript generated! (Est. cost: $${cost.toFixed(4)})`);
+    }
+    
     return transcriptData;
 
   } catch (error) {
-    console.error('Transcript fetch error:', error);
-    throw error;
+    console.error('Whisper transcript error:', error);
+    throw new Error(`Whisper AI transcription failed: ${error.message}`);
+  }
+}
+
+/**
+ * Get transcript using only YouTube captions (no fallback)
+ * @param {string} videoIdOrUrl - YouTube video ID or full URL
+ * @param {string} language - Language code
+ * @returns {Promise<Object>} Transcript data
+ */
+export async function getTranscriptCaptionsOnly(videoIdOrUrl, language = 'en') {
+  return getTranscript(videoIdOrUrl, language, { allowWhisperFallback: false });
+}
+
+/**
+ * Check if a video has YouTube captions available
+ * @param {string} videoIdOrUrl - YouTube video ID or URL
+ * @returns {Promise<boolean>} True if captions are available
+ */
+export async function hasCaptions(videoIdOrUrl) {
+  const videoId = extractVideoId(videoIdOrUrl) || videoIdOrUrl;
+  
+  try {
+    const response = await fetch('/.netlify/functions/youtube-transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, language: 'en' })
+    });
+    return response.ok;
+  } catch {
+    return false;
   }
 }
 
