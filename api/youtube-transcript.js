@@ -1,19 +1,9 @@
 /**
  * Vercel API Route: YouTube Transcript Fetcher
  * 
- * Fetches transcripts from YouTube videos using youtube-transcript-plus
- * This runs server-side to avoid CORS issues
+ * Uses youtubei.js (already in package.json) to fetch transcripts
+ * More reliable on Vercel serverless than youtube-transcript-plus
  */
-
-// Dynamic import to handle missing package gracefully
-let fetchTranscript;
-try {
-  const module = await import('youtube-transcript-plus');
-  fetchTranscript = module.fetchTranscript;
-} catch (e) {
-  console.warn('youtube-transcript-plus not available, will return 404 to trigger fallback');
-  fetchTranscript = null;
-}
 
 export const config = {
   maxDuration: 60
@@ -45,33 +35,29 @@ export default async function handler(req, res) {
 
     console.log(`Fetching transcript for video: ${videoId}, language: ${language}`);
 
-    // Check if youtube-transcript-plus is available
-    if (!fetchTranscript) {
+    // Use youtubei.js which is already in package.json
+    const { Innertube } = await import('youtubei.js');
+    const yt = await Innertube.create();
+    
+    const info = await yt.getInfo(videoId);
+    const transcriptData = await info.getTranscript();
+    
+    if (!transcriptData || !transcriptData.transcript) {
       return res.status(404).json({ 
-        error: 'YouTube captions not available (package not loaded). Please use AI fallback.',
-        videoId,
-        fallbackRequired: true
+        error: 'No transcript available for this video',
+        videoId
       });
     }
 
-    // Fetch transcript using youtube-transcript-plus
-    const config = {
-      lang: language,
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    };
-
-    const rawSegments = await fetchTranscript(videoId, config);
-
     // Transform to our format
-    const segments = rawSegments.map(segment => ({
-      text: segment.text,
-      start: parseFloat(segment.offset),
-      duration: parseFloat(segment.duration),
-      end: parseFloat(segment.offset) + parseFloat(segment.duration),
-      timestamp: formatTimestamp(parseFloat(segment.offset))
+    const segments = transcriptData.transcript.content.body.initial_segments.map(seg => ({
+      text: seg.snippet.text,
+      start: seg.start_ms / 1000,
+      duration: seg.end_ms / 1000 - seg.start_ms / 1000,
+      end: seg.end_ms / 1000,
+      timestamp: formatTimestamp(seg.start_ms / 1000)
     }));
 
-    // Calculate full text
     const fullText = segments.map(s => s.text).join(' ');
 
     const response = {
@@ -79,9 +65,7 @@ export default async function handler(req, res) {
       language,
       segments,
       fullText,
-      totalDuration: segments.length > 0 
-        ? segments[segments.length - 1].end 
-        : 0,
+      totalDuration: segments.length > 0 ? segments[segments.length - 1].end : 0,
       wordCount: segments.reduce((count, seg) => count + seg.text.split(/\s+/).length, 0),
       segmentCount: segments.length
     };
@@ -90,30 +74,11 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Transcript fetch error:', error);
-    console.error('Error name:', error.constructor?.name);
     console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
 
-    // Handle specific errors
-    let errorMessage = error.message || 'Unknown error';
-    let statusCode = 500;
-
-    const errorName = error.constructor?.name || '';
-    
-    if (errorName === 'YoutubeTranscriptNotAvailableError' || errorMessage.includes('not available')) {
-      errorMessage = 'No transcript available for this video. The video may not have captions.';
-      statusCode = 404;
-    } else if (errorName === 'YoutubeTranscriptDisabledError' || errorMessage.includes('disabled')) {
-      errorMessage = 'Transcripts are disabled for this video';
-      statusCode = 403;
-    } else if (errorName === 'YoutubeTranscriptVideoUnavailableError' || errorMessage.includes('unavailable')) {
-      errorMessage = 'Video is unavailable or has been removed';
-      statusCode = 404;
-    }
-
-    return res.status(statusCode).json({ 
-      error: errorMessage,
-      errorType: errorName,
+    return res.status(404).json({ 
+      error: 'No transcript available for this video',
+      errorType: error.constructor?.name,
       videoId: req.body?.videoId
     });
   }
