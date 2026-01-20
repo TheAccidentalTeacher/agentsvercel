@@ -653,6 +653,12 @@ class VideoUI {
     const container = document.getElementById('video-modal-stats');
     if (!container) return;
 
+    // Guard against null/undefined transcript
+    if (!transcript || !transcript.segments) {
+      container.innerHTML = '<div class="stats-placeholder">No transcript stats available</div>';
+      return;
+    }
+
     const stats = getTranscriptStats(transcript);
     const source = transcript.metadata?.source;
     const cost = transcript.metadata?.costEstimate || 0;
