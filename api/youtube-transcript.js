@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { videoId, language = 'en' } = req.body;
+    const { videoId, language = 'en' } = req.body || {};
 
     if (!videoId) {
       return res.status(400).json({ error: 'videoId is required' });
