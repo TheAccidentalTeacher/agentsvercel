@@ -160,7 +160,8 @@ export async function getTranscriptWithGemini(videoId, language = 'en', onStatus
   try {
     if (onStatusUpdate) onStatusUpdate('Gemini is watching the video...');
     
-    const response = await fetch('/.netlify/functions/youtube-gemini-transcript', {
+    // Use edge function for longer timeout (120s vs 10s)
+    const response = await fetch('/api/gemini-transcript', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
