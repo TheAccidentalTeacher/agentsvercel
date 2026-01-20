@@ -69,24 +69,30 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Transcript fetch error:', error);
+    console.error('Error name:', error.constructor?.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
 
     // Handle specific errors
-    let errorMessage = error.message;
+    let errorMessage = error.message || 'Unknown error';
     let statusCode = 500;
 
-    if (error.constructor.name === 'YoutubeTranscriptNotAvailableError') {
+    const errorName = error.constructor?.name || '';
+    
+    if (errorName === 'YoutubeTranscriptNotAvailableError' || errorMessage.includes('not available')) {
       errorMessage = 'No transcript available for this video. The video may not have captions.';
       statusCode = 404;
-    } else if (error.constructor.name === 'YoutubeTranscriptDisabledError') {
+    } else if (errorName === 'YoutubeTranscriptDisabledError' || errorMessage.includes('disabled')) {
       errorMessage = 'Transcripts are disabled for this video';
       statusCode = 403;
-    } else if (error.constructor.name === 'YoutubeTranscriptVideoUnavailableError') {
+    } else if (errorName === 'YoutubeTranscriptVideoUnavailableError' || errorMessage.includes('unavailable')) {
       errorMessage = 'Video is unavailable or has been removed';
       statusCode = 404;
     }
 
     return res.status(statusCode).json({ 
       error: errorMessage,
+      errorType: errorName,
       videoId: req.body?.videoId
     });
   }
