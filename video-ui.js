@@ -194,7 +194,7 @@ class VideoUI {
     resultsContainer.innerHTML = '<div class="loading-indicator"><span class="spinner"></span> Searching...</div>';
 
     try {
-      const response = await fetch('/.netlify/functions/youtube-search', {
+      const response = await fetch('/api/youtube-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, maxResults: 25 })
@@ -228,7 +228,7 @@ class VideoUI {
     searchResultsSection.style.display = 'block';
 
     try {
-      const response = await fetch('/.netlify/functions/youtube-search', {
+      const response = await fetch('/api/youtube-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, maxResults: 25 })
@@ -986,7 +986,7 @@ class VideoUI {
     resultsContainer.innerHTML = '<div class="loading-indicator"><span class="spinner"></span> Searching...</div>';
 
     try {
-      const response = await fetch('/.netlify/functions/youtube-search', {
+      const response = await fetch('/api/youtube-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, maxResults: 10 })

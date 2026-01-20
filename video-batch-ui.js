@@ -245,7 +245,7 @@ export class VideoBatchUI {
     }
 
     async generateWeeklySummary(videos) {
-        const response = await fetch('/.netlify/functions/video-batch-summary', {
+        const response = await fetch('/api/video-batch-summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ videos })
@@ -260,7 +260,7 @@ export class VideoBatchUI {
     }
 
     async generateCombinedQuiz(videos) {
-        const response = await fetch('/.netlify/functions/video-batch-quiz', {
+        const response = await fetch('/api/video-batch-quiz', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ videos })
@@ -275,7 +275,7 @@ export class VideoBatchUI {
     }
 
     async generateMasterVocabulary(videos) {
-        const response = await fetch('/.netlify/functions/video-batch-vocabulary', {
+        const response = await fetch('/api/video-batch-vocabulary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ videos })
@@ -290,7 +290,7 @@ export class VideoBatchUI {
     }
 
     async generateUnitStudyGuide(videos) {
-        const response = await fetch('/.netlify/functions/video-batch-study-guide', {
+        const response = await fetch('/api/video-batch-study-guide', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ videos })

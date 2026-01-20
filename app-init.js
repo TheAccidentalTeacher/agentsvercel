@@ -121,7 +121,7 @@ async function sendMessage() {
         const attachedFiles = window.multiFileHandler ? await window.multiFileHandler.getAllDocumentText() : [];
         
         // Make API call
-        const response = await fetch('/.netlify/functions/chat', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

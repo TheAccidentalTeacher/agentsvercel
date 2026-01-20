@@ -652,8 +652,8 @@ class AutonomousAgents {
     const useDeepResearch = config.researchType === 'deep' || config.enableConsortium !== false;
     
     const endpoint = useDeepResearch ? 
-      '/.netlify/functions/deep-research' : 
-      '/.netlify/functions/research';
+      '/api/deep-research' : 
+      '/api/research';
 
     console.log(`📊 Research type: ${useDeepResearch ? 'DEEP (Multi-Agent Consortium)' : 'QUICK (Basic Search)'}`);
     

@@ -1552,12 +1552,12 @@ class GameEditor {
             webSearch: webSearchEnabled
         };
         
-        console.log('[AI Message] 🌐 Making fetch request to /.netlify/functions/chat');
+        console.log('[AI Message] 🌐 Making fetch request to /api/chat');
         console.log('[AI Message] Request body:', JSON.stringify(requestBody, null, 2));
         
         const fetchStartTime = performance.now();
         
-        const response = await fetch('/.netlify/functions/chat', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)

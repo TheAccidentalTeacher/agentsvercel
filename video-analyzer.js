@@ -7,7 +7,7 @@
 
 export class VideoAnalyzer {
     constructor() {
-        this.apiEndpoint = '/.netlify/functions/video-analyze';
+        this.apiEndpoint = '/api/video-analyze';
     }
 
     /**

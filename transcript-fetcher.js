@@ -45,7 +45,7 @@ export async function getTranscript(videoIdOrUrl, language = 'en', options = {})
   try {
     if (onStatusUpdate) onStatusUpdate('Checking for YouTube captions...');
     
-    const response = await fetch('/.netlify/functions/youtube-transcript', {
+    const response = await fetch('/api/youtube-transcript', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ export async function getTranscriptWithWhisper(videoId, language = 'en', onStatu
   try {
     if (onStatusUpdate) onStatusUpdate('Extracting audio from video...');
     
-    const response = await fetch('/.netlify/functions/youtube-whisper-transcript', {
+    const response = await fetch('/api/youtube-whisper-transcript', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -220,7 +220,7 @@ export async function hasCaptions(videoIdOrUrl) {
   const videoId = extractVideoId(videoIdOrUrl) || videoIdOrUrl;
   
   try {
-    const response = await fetch('/.netlify/functions/youtube-transcript', {
+    const response = await fetch('/api/youtube-transcript', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ videoId, language: 'en' })

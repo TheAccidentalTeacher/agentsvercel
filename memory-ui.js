@@ -466,7 +466,7 @@ function attachGraphEventListeners() {
       autoConnectBtn.textContent = '⏳ Detecting connections...';
       
       try {
-        const response = await fetch('/.netlify/functions/memory-auto-connect', {
+        const response = await fetch('/api/memory-auto-connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: currentUser.id })

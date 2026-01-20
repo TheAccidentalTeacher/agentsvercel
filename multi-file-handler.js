@@ -204,7 +204,7 @@ class MultiFileHandler {
             const formData = new FormData();
             formData.append('files', fileData.file);
             
-            const response = await fetch('/.netlify/functions/extract-documents', {
+            const response = await fetch('/api/extract-documents', {
                 method: 'POST',
                 body: formData
             });
@@ -377,7 +377,7 @@ class MultiFileHandler {
                 
                 console.log(`[MultiFile] Sending ${binaryFiles.length} files to server for extraction...`);
                 
-                const response = await fetch('/.netlify/functions/extract-documents', {
+                const response = await fetch('/api/extract-documents', {
                     method: 'POST',
                     body: formData
                 });

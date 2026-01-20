@@ -117,7 +117,7 @@ class MultiModelComparison {
         const startTime = Date.now();
 
         try {
-            const response = await fetch('/.netlify/functions/multi-model', {
+            const response = await fetch('/api/multi-model', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -183,7 +183,7 @@ Please provide:
 Keep your analysis concise and focused.`;
 
         try {
-            const response = await fetch('/.netlify/functions/chat', {
+            const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

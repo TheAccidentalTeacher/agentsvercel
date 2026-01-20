@@ -295,7 +295,7 @@ async function uploadFile(file) {
     formData.append('fileSize', file.size);
     
     // Upload to server
-    const response = await fetch('/.netlify/functions/document-upload', {
+    const response = await fetch('/api/document-upload', {
       method: 'POST',
       body: formData
     });
@@ -328,7 +328,7 @@ async function uploadFile(file) {
     // Trigger document processing
     try {
       console.log('🔄 [Process] Sending request with documentId:', documentId);
-      const processResponse = await fetch('/.netlify/functions/document-process', {
+      const processResponse = await fetch('/api/document-process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: documentId })

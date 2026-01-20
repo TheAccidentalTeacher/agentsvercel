@@ -27,7 +27,7 @@ export class MemoryAnalytics {
                 throw new Error('User ID required for analytics');
             }
 
-            const response = await fetch(`/.netlify/functions/memory-analytics?userId=${userId}`, {
+            const response = await fetch(`/api/memory-analytics?userId=${userId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });

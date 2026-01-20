@@ -298,7 +298,7 @@ class ExpertPanels {
     async queryExpert(expert, question) {
         const startTime = Date.now();
 
-        const response = await fetch('/.netlify/functions/chat', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -355,7 +355,7 @@ As the facilitator:
 
 Keep the deliberation focused and professional.`;
 
-        const response = await fetch('/.netlify/functions/chat', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -392,7 +392,7 @@ ${opinions.filter(o => !o.error).map(o => `- ${o.expert}: ${o.opinion.substring(
 
 Provide a concise, actionable consensus that represents the panel's collective wisdom (2-3 paragraphs).`;
 
-        const response = await fetch('/.netlify/functions/chat', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
