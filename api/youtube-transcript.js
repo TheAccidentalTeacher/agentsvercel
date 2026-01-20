@@ -33,30 +33,81 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'videoId is required' });
     }
 
-    console.log(`Fetching transcript for video: ${videoId}, language: ${language}`);
+    console.log('=== YouTube Transcript Debug ===');
+    console.log(`Video ID: ${videoId}, Language: ${language}`);
+    console.log(`Timestamp: ${new Date().toISOString()}`);
 
     // Use youtubei.js which is already in package.json
+    console.log('Step 1: Importing youtubei.js...');
     const { Innertube } = await import('youtubei.js');
+    console.log('✓ Import successful');
+    
+    console.log('Step 2: Creating Innertube instance...');
     const yt = await Innertube.create();
+    console.log('✓ Innertube created');
     
+    console.log('Step 3: Getting video info...');
     const info = await yt.getInfo(videoId);
-    const transcriptData = await info.getTranscript();
+    console.log('✓ Video info retrieved');
+    console.log(`Video title: ${info.basic_info?.title || 'Unknown'}`);
+    console.log(`Video duration: ${info.basic_info?.duration || 'Unknown'}`);
     
-    if (!transcriptData || !transcriptData.transcript) {
+    console.log('Step 4: Getting transcript...');
+    const transcriptData = await info.getTranscript();
+    console.log('✓ Transcript data received');
+    console.log(`Transcript object keys: ${Object.keys(transcriptData || {}).join(', ')}`);
+    
+    if (!transcriptData) {
+      console.error('❌ No transcript data returned');
       return res.status(404).json({ 
-        error: 'No transcript available for this video',
+        error: 'No transcript available - transcriptData is null',
+        videoId,
+        debug: {
+          hasInfo: !!info,
+          infoKeys: Object.keys(info || {})
+        }
+      });
+    }
+
+    console.log(`Transcript content keys: ${Object.keys(transcriptData.transcript?.content || {}).join(', ')}`);
+    
+    if (!transcriptData.transcript || !transcriptData.transcript.content) {
+      console.error('❌ Invalid transcript structure');
+      console.error(`Transcript structure: ${JSON.stringify(transcriptData, null, 2).substring(0, 500)}`);
+      return res.status(404).json({ 
+        error: 'Invalid transcript structure',
+        videoId,
+        debug: {
+          hasTranscript: !!transcriptData.transcript,
+          hasContent: !!transcriptData.transcript?.content,
+          structure: Object.keys(transcriptData)
+        }
+      });
+    }
+
+    console.log('Step 5: Extracting segments...');
+    const rawSegments = transcriptData.transcript.content.body.initial_segments;
+    console.log(`Found ${rawSegments?.length || 0} segments`);
+    
+    if (!rawSegments || rawSegments.length === 0) {
+      console.error('❌ No segments in transcript');
+      return res.status(404).json({ 
+        error: 'Transcript has no segments',
         videoId
       });
     }
 
     // Transform to our format
-    const segments = transcriptData.transcript.content.body.initial_segments.map(seg => ({
+    const segments = rawSegments.map(seg => ({
       text: seg.snippet.text,
       start: seg.start_ms / 1000,
       duration: seg.end_ms / 1000 - seg.start_ms / 1000,
       end: seg.end_ms / 1000,
       timestamp: formatTimestamp(seg.start_ms / 1000)
     }));
+
+    console.log(`✓ Transformed ${segments.length} segments`);
+    console.log(`First segment: "${segments[0]?.text?.substring(0, 50)}..."`);
 
     const fullText = segments.map(s => s.text).join(' ');
 
@@ -70,16 +121,28 @@ export default async function handler(req, res) {
       segmentCount: segments.length
     };
 
+    console.log('=== Success ===');
+    console.log(`Total segments: ${response.segmentCount}`);
+    console.log(`Total words: ${response.wordCount}`);
+    console.log(`Duration: ${response.totalDuration}s`);
+
     return res.status(200).json(response);
 
   } catch (error) {
-    console.error('Transcript fetch error:', error);
+    console.error('=== ERROR ===');
+    console.error('Error type:', error.constructor?.name);
     console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack?.substring(0, 500));
 
     return res.status(404).json({ 
-      error: 'No transcript available for this video',
+      error: 'Transcript fetch failed',
       errorType: error.constructor?.name,
-      videoId: req.body?.videoId
+      errorMessage: error.message,
+      videoId: req.body?.videoId,
+      debug: {
+        timestamp: new Date().toISOString(),
+        stack: error.stack?.split('\n').slice(0, 3)
+      }
     });
   }
 }
