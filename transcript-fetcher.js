@@ -42,30 +42,40 @@ export async function getTranscript(videoIdOrUrl, language = 'en', options = {})
   const videoId = extractVideoId(videoIdOrUrl) || videoIdOrUrl;
   const enableFallback = allowFallback && allowWhisperFallback;
   
-  // TIER 1: Try YouTube captions (CLIENT-SIDE - like Monica.ai)
+  // TIER 1: Try YouTube captions (server-side with working package)
   try {
     if (onStatusUpdate) onStatusUpdate('Fetching YouTube captions...');
     
-    const transcriptData = await fetchYouTubeCaptions(videoId, language);
-    
-    // Format to match expected structure
-    const result = {
-      transcript: transcriptData.transcript,
-      metadata: {
-        source: TRANSCRIPT_SOURCE.YOUTUBE_CAPTIONS,
-        language: transcriptData.language,
-        videoId: transcriptData.videoId,
-        costEstimate: 0,
-        fallbackUsed: false,
-        method: 'client-side-scraping'
-      }
-    };
-    
-    if (onStatusUpdate) onStatusUpdate('YouTube captions loaded successfully!');
-    return result;
+    const response = await fetch('/api/youtube-transcript', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ videoId, language })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      const result = {
+        transcript: data.transcript,
+        metadata: {
+          source: TRANSCRIPT_SOURCE.YOUTUBE_CAPTIONS,
+          language: data.language,
+          videoId: data.videoId,
+          costEstimate: 0,
+          fallbackUsed: false
+        }
+      };
+      
+      if (onStatusUpdate) onStatusUpdate('YouTube captions loaded!');
+      return result;
+    }
+
+    console.log('📝 YouTube captions not available');
 
   } catch (error) {
-    console.log('📝 Client-side YouTube captions failed:', error.message);
+    console.log('📝 YouTube captions failed:', error.message);
   }
 
   if (!enableFallback) {
