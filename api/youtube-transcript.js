@@ -5,7 +5,19 @@
  * This runs server-side to avoid CORS issues
  */
 
-import { fetchTranscript } from 'youtube-transcript-plus';
+// Dynamic import to handle missing package gracefully
+let fetchTranscript;
+try {
+  const module = await import('youtube-transcript-plus');
+  fetchTranscript = module.fetchTranscript;
+} catch (e) {
+  console.warn('youtube-transcript-plus not available, will return 404 to trigger fallback');
+  fetchTranscript = null;
+}
+
+export const config = {
+  maxDuration: 60
+};
 
 export default async function handler(req, res) {
   // CORS headers
@@ -32,6 +44,15 @@ export default async function handler(req, res) {
     }
 
     console.log(`Fetching transcript for video: ${videoId}, language: ${language}`);
+
+    // Check if youtube-transcript-plus is available
+    if (!fetchTranscript) {
+      return res.status(404).json({ 
+        error: 'YouTube captions not available (package not loaded). Please use AI fallback.',
+        videoId,
+        fallbackRequired: true
+      });
+    }
 
     // Fetch transcript using youtube-transcript-plus
     const config = {
