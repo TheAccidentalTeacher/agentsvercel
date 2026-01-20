@@ -2,16 +2,17 @@
  * YouTube Transcript Fetcher Module (Browser Version)
  * 
  * Handles transcript/caption extraction with timestamps
- * Browser version proxies requests through server
+ * Browser version uses CLIENT-SIDE scraping (like Monica.ai)
  * 
  * Phase 8: Video Intelligence
  * Phase 8.5: Multi-tier fallback system:
- *   1. YouTube Captions (free, instant)
+ *   1. YouTube Captions CLIENT-SIDE (free, instant, bypasses CORS)
  *   2. OpenAI Whisper (audio extraction)
  *   3. Google Gemini (video understanding - most reliable)
  */
 
 import { extractVideoId } from './youtube-api.js';
+import { fetchYouTubeCaptions } from './youtube-caption-scraper.js';
 
 /**
  * Transcript source types
@@ -41,36 +42,30 @@ export async function getTranscript(videoIdOrUrl, language = 'en', options = {})
   const videoId = extractVideoId(videoIdOrUrl) || videoIdOrUrl;
   const enableFallback = allowFallback && allowWhisperFallback;
   
-  // TIER 1: Try YouTube captions (free, fast)
+  // TIER 1: Try YouTube captions (CLIENT-SIDE - like Monica.ai)
   try {
-    if (onStatusUpdate) onStatusUpdate('Checking for YouTube captions...');
+    if (onStatusUpdate) onStatusUpdate('Fetching YouTube captions...');
     
-    const response = await fetch('/api/youtube-transcript', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ videoId, language })
-    });
-
-    if (response.ok) {
-      const transcriptData = await response.json();
-      transcriptData.metadata = {
-        ...transcriptData.metadata,
+    const transcriptData = await fetchYouTubeCaptions(videoId, language);
+    
+    // Format to match expected structure
+    const result = {
+      transcript: transcriptData.transcript,
+      metadata: {
         source: TRANSCRIPT_SOURCE.YOUTUBE_CAPTIONS,
+        language: transcriptData.language,
+        videoId: transcriptData.videoId,
         costEstimate: 0,
-        fallbackUsed: false
-      };
-      if (onStatusUpdate) onStatusUpdate('YouTube captions loaded successfully!');
-      return transcriptData;
-    }
-
-    // Check if captions are simply not available
-    const errorData = await response.json().catch(() => ({}));
-    console.log('📝 YouTube captions not available, trying AI fallbacks...');
+        fallbackUsed: false,
+        method: 'client-side-scraping'
+      }
+    };
+    
+    if (onStatusUpdate) onStatusUpdate('YouTube captions loaded successfully!');
+    return result;
 
   } catch (error) {
-    console.log('📝 YouTube captions failed:', error.message);
+    console.log('📝 Client-side YouTube captions failed:', error.message);
   }
 
   if (!enableFallback) {
