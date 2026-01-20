@@ -443,7 +443,7 @@ class VideoUI {
       }
       
       // Initialize Video Content Tools
-      if (window.initializeVideoTools) {
+      if (window.initializeVideoTools && transcript.segments) {
         const transcriptText = transcript.segments.map(s => s.text).join(' ');
         window.initializeVideoTools(this.currentVideo, transcriptText);
         console.log('🎨 Content creation tools ready!');
@@ -606,7 +606,7 @@ class VideoUI {
       }
       
       // Initialize Video Content Tools (Phase 8 Week 2)
-      if (window.initializeVideoTools) {
+      if (window.initializeVideoTools && transcript.segments) {
         const transcriptText = transcript.segments.map(s => s.text).join(' ');
         window.initializeVideoTools(this.currentVideo, transcriptText);
         console.log('🎨 Content creation tools ready!');

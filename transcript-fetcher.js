@@ -128,6 +128,11 @@ export async function getTranscriptWithWhisper(videoId, language = 'en', onStatu
 
     const transcriptData = await response.json();
     
+    // Check if Whisper actually returned a valid transcript
+    if (!transcriptData.segments || transcriptData.success === false) {
+      throw new Error(transcriptData.message || 'Whisper did not return a valid transcript');
+    }
+    
     // Ensure metadata shows Whisper was used
     transcriptData.metadata = {
       ...transcriptData.metadata,
