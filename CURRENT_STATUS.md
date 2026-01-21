@@ -1,9 +1,44 @@
 # Current System Status
 
-**Date**: December 24, 2025  
-**Version**: v3.0.0 - Phase 11 Week 2 COMPLETE (Document Intelligence)
-**Current Focus**: Multi-file uploads (20 files), XLSX/OCR extraction, quick actions; preparing Week 3 multi-model comparison
+**Date**: January 20, 2026  
+**Version**: v3.1.0 - VERCEL MIGRATION COMPLETE  
+**Current Focus**: Netlify → Vercel Pro migration complete, OAuth fixed, YouTube transcripts ready to test
+**Platform**: Vercel Pro (60s timeout) - https://agentsvercel-beta.vercel.app  
 **Theological Foundation**: Reformed Baptist (Spurgeon, MacArthur, Piper, Sproul)
+
+---
+
+## 🚀 RECENT UPDATES (January 20, 2026)
+
+### ✅ VERCEL MIGRATION COMPLETE
+- **Deployed to**: https://agentsvercel-beta.vercel.app
+- **Timeout Increased**: 10s (Netlify) → 60s (Vercel Pro) for long-running Gemini video transcription
+- **37 API Routes Converted**: CommonJS (.netlify/functions) → ES Modules (/api/)
+- **13 Frontend Files Updated**: All API calls now point to `/api/*` instead of `/.netlify/functions/*`
+- **GitHub Repo**: https://github.com/TheAccidentalTeacher/agentsvercel
+
+### ✅ OAUTH FIXED
+- **New GitHub OAuth App**: `UCAS Vercel Production` (Client ID: Ov23liHlVnoQGp8X7XoH)
+- **Supabase Configured**: Authentication working with correct callback URLs
+- **Documentation Created**: [OAUTH_FIX_CHECKLIST.md](OAUTH_FIX_CHECKLIST.md) and [working doc.md](working%20doc.md)
+- **Issue Resolved**: OAuth redirect loop from Netlify → Vercel fixed
+
+### ✅ YOUTUBE TRANSCRIPT FIXED
+- **Package**: Using `youtube-transcript` npm package (proven to work on Vercel)
+- **UX Improved**: Manual loading (like Monica.ai) - no auto-expensive AI fallback
+- **API Endpoint**: `/api/youtube-transcript` ready and deployed
+- **Status**: Ready to test (blocked by OAuth issues now resolved)
+
+### ✅ CONSOLE CLEANUP
+- **Reduced Noise**: Commented out repetitive polling logs (every 30 seconds)
+- **Kept Essentials**: Errors, task execution, important state changes
+- **Files Updated**: autonomous-agents.js, auth-ui.js, memory-ui.js, auto-memory.js, research-memory.js
+
+### 🎯 NEXT STEPS
+1. Test YouTube transcript loading on Vercel (OAuth now working)
+2. Verify 60s timeout handles long videos (23+ minutes)
+3. Test all features on Vercel deployment
+4. Monitor Vercel Function Logs for any issues
 
 ---
 

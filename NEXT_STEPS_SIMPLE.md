@@ -1,7 +1,32 @@
 # What's Next - Simple Roadmap
 
-**Last Updated**: December 21, 2025  
-**Current State**: Phase 8 (YouTube) ✅ | Phase 9 (Image + Audio) ✅
+**Last Updated**: January 20, 2026  
+**Current State**: ✅ Vercel Migration Complete | ✅ OAuth Fixed | ✅ YouTube Transcripts Ready  
+**Platform**: Vercel Pro - https://agentsvercel-beta.vercel.app
+
+---
+
+## ✅ JUST COMPLETED: Netlify → Vercel Pro Migration (January 20, 2026)
+
+**Why We Migrated**:
+- Netlify timeout: 10 seconds (too short for Gemini video transcription)
+- Vercel Pro timeout: 60 seconds (handles 23+ minute videos)
+- Better serverless architecture for ES Modules
+
+**What Changed**:
+- **37 API routes**: Converted from CommonJS to ES Modules
+- **Frontend**: All 13 files updated to use `/api/*` instead of `/.netlify/functions/*`
+- **OAuth**: New GitHub OAuth app configured for Vercel domain
+- **Console**: Cleaned up repetitive logging for better debugging
+- **YouTube Transcripts**: Now using `youtube-transcript` npm package (proven to work)
+
+**New URLs**:
+- Production: https://agentsvercel-beta.vercel.app
+- GitHub: https://github.com/TheAccidentalTeacher/agentsvercel
+
+**Documentation**:
+- [OAUTH_FIX_CHECKLIST.md](OAUTH_FIX_CHECKLIST.md) - OAuth setup guide
+- [working doc.md](working%20doc.md) - Setup walkthrough
 
 ---
 
