@@ -696,22 +696,6 @@ class VideoUI {
       console.error('Summary generation error:', error);
     }
   }
-      
-      // 📊 Track tool usage in history
-      if (this.currentVideo?.videoId) {
-        await videoHistory.markToolUsed(this.currentVideo.videoId, 'summary');
-        await videoHistory.markToolUsed(this.currentVideo.videoId, 'analysis');
-        console.log('📊 Tool usage tracked: Summary & Analysis');
-      }
-
-    } catch (error) {
-      summaryContainer.innerHTML = `<div class="error-message">Failed to generate summary: ${error.message}</div>`;
-      analysisContainer.innerHTML = `<div class="error-message">Failed to generate analysis: ${error.message}</div>`;
-      generateBtn.disabled = false;
-      generateBtn.innerHTML = '<span class="icon">✨</span> Generate Summary';
-      console.error('Summary generation error:', error);
-    }
-  }
 
   displayModalSummaries(summaries) {
     console.log('📊 Displaying summaries:', summaries);
