@@ -696,16 +696,6 @@ class VideoUI {
       console.error('Summary generation error:', error);
     }
   }
-
-      this.currentAnalysis = analysis;
-
-      // Display summaries
-      this.displayModalSummaries(analysis.summaries);
-      
-      // Display agent analyses
-      this.displayModalAgentAnalyses(analysis.agentAnalyses);
-
-      generateBtn.textContent = '✓ Analysis Complete';
       
       // 📊 Track tool usage in history
       if (this.currentVideo?.videoId) {
