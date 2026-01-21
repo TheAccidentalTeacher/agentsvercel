@@ -41,12 +41,20 @@ export default async function handler(req, res) {
     const grade = gradeLevel || 'middle school';
     const videoTitle = videoData.title || 'Video';
 
+    // Truncate transcript to prevent timeout (max ~15000 chars)
+    const maxTranscriptLength = 15000;
+    let truncatedTranscript = transcript;
+    if (transcript.length > maxTranscriptLength) {
+      truncatedTranscript = transcript.substring(0, maxTranscriptLength) + '\n\n[Transcript truncated for processing...]';
+      console.log(`📝 Transcript truncated from ${transcript.length} to ${maxTranscriptLength} chars`);
+    }
+
     console.log(`📝 Generating ${style} notes for ${grade}...`);
     if (includeReading) console.log('📖 Including reading passage');
     if (includeExitTicket) console.log('🎫 Including exit ticket');
 
     // Build the combined prompt
-    let fullPrompt = getStylePrompt(style, videoTitle, grade, transcript);
+    let fullPrompt = getStylePrompt(style, videoTitle, grade, truncatedTranscript);
     
     // Add reading passage request if enabled
     if (includeReading) {
@@ -60,7 +68,7 @@ export default async function handler(req, res) {
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 6000, // Increased for additional content
+      max_tokens: 4000, // Reduced to speed up generation
       temperature: 0.7,
       messages: [{ role: 'user', content: fullPrompt }]
     });
@@ -211,60 +219,47 @@ _________________________________________________
  */
 function getStylePrompt(style, videoTitle, grade, transcript) {
   const prompts = {
-    cornell: `Create Cornell Notes based on this video content.
+    cornell: `Create Cornell Notes for this video. Use ACTUAL markdown tables.
 
 **VIDEO:** ${videoTitle}
-**GRADE LEVEL:** ${grade}
+**GRADE:** ${grade}
 
-**CONTENT:**
+**TRANSCRIPT:**
 ${transcript}
 
-**CRITICAL FORMAT INSTRUCTIONS:**
-You MUST use actual markdown tables with | pipes | for the Questions and Notes columns.
-DO NOT use separate bullet lists for questions and notes.
-Each section MUST be a proper two-column table.
-
-Format EXACTLY like this (this is the required structure):
+**OUTPUT FORMAT - Use this EXACT structure:**
 
 # Cornell Notes: ${videoTitle}
 
----
-
-## Section 1: [Topic Name]
+## Section 1: [Topic]
 
 | Questions | Notes |
 |-----------|-------|
-| What is [concept]? | [Main point about the concept] |
-| Why does [thing] happen? | [Explanation with details] |
-| How does [process] work? | [Step-by-step or key facts] |
+| What is...? | Main point here |
+| Why does...? | Explanation here |
+| How does...? | Details here |
 
-**Key Terms:** [Term 1] - definition; [Term 2] - definition
+**Key Terms:** term1 - definition; term2 - definition
 
 ---
 
-## Section 2: [Next Topic Name]
+## Section 2: [Topic]
 
 | Questions | Notes |
 |-----------|-------|
-| [Question about this topic]? | [Answer/notes] |
-| [Another question]? | [More detailed notes here] |
-| [Third question]? | [Supporting information] |
+| Question? | Notes |
+| Question? | Notes |
 
-**Key Terms:** [Term] - definition
-
----
-
-(Continue this EXACT pattern for 5-8 sections covering the whole video)
+**Key Terms:** term - definition
 
 ---
 
-## 📋 Summary
+(Create 4-6 sections total)
 
-[3-5 sentences synthesizing the main ideas from all sections above.]
+## Summary
+[2-3 sentences summarizing main ideas]
 
----
-
-REMEMBER: Every section MUST have a proper | Question | Notes | table. NO bullet lists for Q&A.`,
+IMPORTANT: Use | Question | Notes | tables for each section. Not bullet lists.`,
 
     outline: `Create a Hierarchical Outline based on this video content.
 
