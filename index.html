@@ -1735,7 +1735,7 @@
             URL.revokeObjectURL(url);
         };
         
-        // Export as Word (.docx) file
+        // Export as Word (.docx) file - Professional formatting
         window.exportCreatedContentDocx = async function() {
             if (!window.currentGeneratedContent) return;
             
@@ -1747,7 +1747,7 @@
             }
             
             try {
-                const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
+                const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak, Tab, TabStopType, TabStopPosition, convertInchesToTwip } = docx;
                 
                 const content = window.currentGeneratedContent.markdown;
                 const toolName = window.currentGeneratedContent.toolName;
@@ -1763,73 +1763,136 @@
                 const paragraphs = [];
                 const lines = cleanedContent.split('\n');
                 
-                // Add title
+                // Professional title with styling
                 paragraphs.push(
                     new Paragraph({
-                        text: toolName,
-                        heading: HeadingLevel.TITLE,
-                        spacing: { after: 200 }
+                        children: [
+                            new TextRun({
+                                text: toolName,
+                                bold: true,
+                                size: 48,  // 24pt
+                                color: "1e3a5f",  // Dark blue
+                                font: "Calibri"
+                            })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 120 }
                     })
                 );
                 
-                // Add video info
+                // Add video info with icon
                 if (window.currentVideoData) {
                     paragraphs.push(
                         new Paragraph({
                             children: [
                                 new TextRun({
-                                    text: `Video: ${window.currentVideoData.title}`,
+                                    text: "📺 ",
+                                    size: 22
+                                }),
+                                new TextRun({
+                                    text: window.currentVideoData.title,
                                     italics: true,
-                                    size: 20
+                                    size: 22,
+                                    color: "555555",
+                                    font: "Calibri"
                                 })
                             ],
+                            alignment: AlignmentType.CENTER,
+                            spacing: { after: 80 }
+                        })
+                    );
+                    
+                    // Add date generated
+                    paragraphs.push(
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+                                    size: 18,
+                                    color: "888888",
+                                    font: "Calibri"
+                                })
+                            ],
+                            alignment: AlignmentType.CENTER,
                             spacing: { after: 400 }
                         })
                     );
                 }
                 
+                // Add separator line
+                paragraphs.push(
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: "━".repeat(60),
+                                color: "cccccc",
+                                size: 20
+                            })
+                        ],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 300 }
+                    })
+                );
+                
                 // Parse markdown content
-                const { Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
+                const { Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign, ShadingType } = docx;
                 let inTable = false;
                 let tableRows = [];
+                let currentSection = '';
                 
                 console.log('🔍 Starting markdown parsing. Total lines:', lines.length);
                 
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
                     
-                    console.log(`Line ${i}:`, JSON.stringify(line.substring(0, 50)));
-                    
                     if (!line) {
                         // If we're in a table, end it
                         if (inTable && tableRows.length > 0) {
-                            paragraphs.push(createWordTable(tableRows));
+                            paragraphs.push(createWordTableStyled(tableRows));
                             inTable = false;
                             tableRows = [];
                         }
-                        paragraphs.push(new Paragraph({ text: '' }));
+                        paragraphs.push(new Paragraph({ text: '', spacing: { after: 100 } }));
+                        continue;
+                    }
+                    
+                    // Horizontal rule
+                    if (line.match(/^-{3,}$/) || line.match(/^_{3,}$/) || line.match(/^━+$/)) {
+                        if (inTable && tableRows.length > 0) {
+                            paragraphs.push(createWordTableStyled(tableRows));
+                            inTable = false;
+                            tableRows = [];
+                        }
+                        paragraphs.push(
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "─".repeat(60),
+                                        color: "dddddd"
+                                    })
+                                ],
+                                alignment: AlignmentType.CENTER,
+                                spacing: { before: 200, after: 200 }
+                            })
+                        );
                         continue;
                     }
                     
                     // Table separator line (|---|---|)
-                    if (line.startsWith('|') && line.includes('-') && line.split('|').filter(c => c.trim()).every(c => c.match(/^-+$/))) {
+                    if (line.startsWith('|') && line.includes('-') && line.split('|').filter(c => c.trim()).every(c => c.match(/^[-:]+$/))) {
                         continue; // Skip separator lines
                     }
                     
                     // Table row detection (| cell1 | cell2 |)
                     if (line.startsWith('|') && line.endsWith('|')) {
-                        console.log('📊 Detected table row:', line);
                         const cells = line.split('|')
                             .map(c => c.trim())
                             .filter(c => c); // Remove empty strings from start/end
-                        
-                        console.log('   Parsed cells:', cells);
                         
                         if (cells.length > 0) {
                             if (!inTable) {
                                 inTable = true;
                                 tableRows = [];
-                                console.log('   ✅ Starting new table');
                             }
                             tableRows.push(cells);
                             continue;
@@ -1838,112 +1901,207 @@
                     
                     // If we were in a table and hit a non-table line, end the table
                     if (inTable && tableRows.length > 0) {
-                        console.log('🏁 Ending table with', tableRows.length, 'rows');
-                        paragraphs.push(createWordTable(tableRows));
+                        paragraphs.push(createWordTableStyled(tableRows));
                         inTable = false;
                         tableRows = [];
                     }
                     
-                    // Headers
+                    // Headers with professional styling
                     if (line.startsWith('#### ')) {
+                        const headerText = line.substring(5).replace(/[#*]/g, '').trim();
                         paragraphs.push(new Paragraph({
-                            text: line.substring(5),
-                            heading: HeadingLevel.HEADING_4,
-                            spacing: { before: 200, after: 100 }
+                            children: [
+                                new TextRun({
+                                    text: headerText,
+                                    bold: true,
+                                    size: 24,
+                                    color: "333333",
+                                    font: "Calibri"
+                                })
+                            ],
+                            spacing: { before: 200, after: 80 }
                         }));
                     } else if (line.startsWith('### ')) {
+                        const headerText = line.substring(4).replace(/[#*]/g, '').trim();
                         paragraphs.push(new Paragraph({
-                            text: line.substring(4),
-                            heading: HeadingLevel.HEADING_3,
-                            spacing: { before: 200, after: 100 }
+                            children: [
+                                new TextRun({
+                                    text: headerText,
+                                    bold: true,
+                                    size: 26,
+                                    color: "2b5797",
+                                    font: "Calibri"
+                                })
+                            ],
+                            spacing: { before: 240, after: 100 }
                         }));
                     } else if (line.startsWith('## ')) {
+                        const headerText = line.substring(3).replace(/[#*]/g, '').trim();
+                        currentSection = headerText;
                         paragraphs.push(new Paragraph({
-                            text: line.substring(3),
-                            heading: HeadingLevel.HEADING_2,
-                            spacing: { before: 200, after: 100 }
+                            children: [
+                                new TextRun({
+                                    text: headerText,
+                                    bold: true,
+                                    size: 30,
+                                    color: "1e3a5f",
+                                    font: "Calibri"
+                                })
+                            ],
+                            spacing: { before: 300, after: 120 },
+                            border: {
+                                bottom: { color: "1e3a5f", size: 6, style: BorderStyle.SINGLE }
+                            }
                         }));
                     } else if (line.startsWith('# ')) {
+                        const headerText = line.substring(2).replace(/[#*]/g, '').trim();
                         paragraphs.push(new Paragraph({
-                            text: line.substring(2),
-                            heading: HeadingLevel.HEADING_1,
-                            spacing: { before: 200, after: 100 }
+                            children: [
+                                new TextRun({
+                                    text: headerText,
+                                    bold: true,
+                                    size: 36,
+                                    color: "1e3a5f",
+                                    font: "Calibri"
+                                })
+                            ],
+                            spacing: { before: 400, after: 200 },
+                            border: {
+                                bottom: { color: "1e3a5f", size: 12, style: BorderStyle.SINGLE }
+                            }
                         }));
                     }
-                    // List items
-                    else if (line.startsWith('- ') || line.match(/^\d+\. /)) {
-                        const text = line.replace(/^[-\d]+\.?\s/, '');
-                        const textRuns = parseInlineFormatting(text);
+                    // Nested list items (with indentation)
+                    else if (line.match(/^\s+[-•]\s/) || line.match(/^\s+\d+\.\s/)) {
+                        const indent = line.match(/^(\s+)/)?.[1]?.length || 2;
+                        const level = Math.min(Math.floor(indent / 2), 3);
+                        const text = line.replace(/^\s*[-•\d]+\.?\s/, '').trim();
+                        const textRuns = parseInlineFormattingStyled(text);
+                        paragraphs.push(new Paragraph({
+                            children: textRuns,
+                            bullet: { level: level },
+                            spacing: { after: 60 },
+                            indent: { left: convertInchesToTwip(0.25 * level) }
+                        }));
+                    }
+                    // Regular list items
+                    else if (line.startsWith('- ') || line.startsWith('• ') || line.match(/^\d+\.\s/)) {
+                        const text = line.replace(/^[-•\d]+\.?\s/, '').trim();
+                        const textRuns = parseInlineFormattingStyled(text);
                         paragraphs.push(new Paragraph({
                             children: textRuns,
                             bullet: { level: 0 },
-                            spacing: { after: 100 }
+                            spacing: { after: 80 }
+                        }));
+                    }
+                    // Answer spaces (underscores)
+                    else if (line.match(/^_+$/) || line.match(/^_{10,}/)) {
+                        paragraphs.push(new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: "_".repeat(70),
+                                    color: "999999"
+                                })
+                            ],
+                            spacing: { before: 60, after: 60 }
+                        }));
+                    }
+                    // Blockquote or special text (starts with >)
+                    else if (line.startsWith('>')) {
+                        const text = line.substring(1).trim();
+                        paragraphs.push(new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: text,
+                                    italics: true,
+                                    color: "555555",
+                                    size: 22
+                                })
+                            ],
+                            indent: { left: convertInchesToTwip(0.5) },
+                            border: {
+                                left: { color: "2b5797", size: 12, style: BorderStyle.SINGLE }
+                            },
+                            spacing: { before: 100, after: 100 }
                         }));
                     }
                     // Regular paragraphs
                     else {
-                        const textRuns = parseInlineFormatting(line);
+                        const textRuns = parseInlineFormattingStyled(line);
                         paragraphs.push(new Paragraph({
                             children: textRuns,
-                            spacing: { after: 200 }
+                            spacing: { after: 120 }
                         }));
                     }
                 }
                 
                 // End any remaining table
                 if (inTable && tableRows.length > 0) {
-                    console.log('🏁 Ending final table with', tableRows.length, 'rows');
-                    paragraphs.push(createWordTable(tableRows));
+                    paragraphs.push(createWordTableStyled(tableRows));
                 }
                 
                 console.log('✅ Markdown parsing complete. Total paragraphs/tables:', paragraphs.length);
                 
-                // Helper function to create Word tables
-                function createWordTable(rows) {
-                    console.log('🔨 Creating Word table with', rows.length, 'rows');
+                // Helper function to create styled Word tables
+                function createWordTableStyled(rows) {
+                    console.log('🔨 Creating styled Word table with', rows.length, 'rows');
+                    const { Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign, AlignmentType, convertInchesToTwip } = docx;
+                    
                     const wordRows = rows.map((row, rowIndex) => {
-                        const cells = row.map(cellText => {
+                        const cells = row.map((cellText, colIndex) => {
+                            // Parse inline formatting in cells
+                            const textRuns = parseInlineFormattingStyled(cellText);
+                            
                             return new TableCell({
                                 children: [new Paragraph({ 
-                                    children: [new TextRun({ 
-                                        text: cellText,
-                                        bold: rowIndex === 0 // Bold header row
-                                    })]
+                                    children: textRuns,
+                                    alignment: colIndex === 0 ? AlignmentType.LEFT : AlignmentType.LEFT
                                 })],
-                                shading: rowIndex === 0 ? { fill: "d9d9d9" } : undefined,
+                                shading: rowIndex === 0 
+                                    ? { fill: "1e3a5f", color: "ffffff" }  // Dark blue header
+                                    : rowIndex % 2 === 0 
+                                        ? { fill: "f5f7fa" }  // Alternating light gray
+                                        : { fill: "ffffff" }, // White
                                 margins: {
-                                    top: 100,
-                                    bottom: 100,
-                                    left: 100,
-                                    right: 100
-                                }
+                                    top: 80,
+                                    bottom: 80,
+                                    left: 120,
+                                    right: 120
+                                },
+                                verticalAlign: VerticalAlign.CENTER
                             });
                         });
                         
-                        return new TableRow({ children: cells });
+                        return new TableRow({ 
+                            children: cells,
+                            tableHeader: rowIndex === 0
+                        });
                     });
                     
                     return new Table({
                         rows: wordRows,
                         width: { size: 100, type: WidthType.PERCENTAGE },
                         borders: {
-                            top: { style: BorderStyle.SINGLE, size: 1 },
-                            bottom: { style: BorderStyle.SINGLE, size: 1 },
-                            left: { style: BorderStyle.SINGLE, size: 1 },
-                            right: { style: BorderStyle.SINGLE, size: 1 },
-                            insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
-                            insideVertical: { style: BorderStyle.SINGLE, size: 1 }
+                            top: { style: BorderStyle.SINGLE, size: 4, color: "cccccc" },
+                            bottom: { style: BorderStyle.SINGLE, size: 4, color: "cccccc" },
+                            left: { style: BorderStyle.SINGLE, size: 4, color: "cccccc" },
+                            right: { style: BorderStyle.SINGLE, size: 4, color: "cccccc" },
+                            insideHorizontal: { style: BorderStyle.SINGLE, size: 2, color: "dddddd" },
+                            insideVertical: { style: BorderStyle.SINGLE, size: 2, color: "dddddd" }
                         }
                     });
                 }
                 
-                // Helper function to parse bold/italic
-                function parseInlineFormatting(text) {
+                // Helper function to parse bold/italic with styling
+                function parseInlineFormattingStyled(text) {
                     const runs = [];
                     
                     // Clean up excessive asterisks first
                     text = text.replace(/\*{4,}/g, '**');  // 4+ asterisks -> bold
                     text = text.replace(/\*{3}/g, '**');    // 3 asterisks -> bold
+                    
+                    // Remove emojis for cleaner Word output (optional - keep common ones)
+                    // text = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
                     
                     // Simple regex for **bold** and *italic*
                     const boldRegex = /\*\*(.*?)\*\*/g;
@@ -1968,26 +2126,59 @@
                         
                         if (part.startsWith('<BOLD>')) {
                             const content = part.replace(/<\/?BOLD>/g, '');
-                            runs.push(new TextRun({ text: content, bold: true }));
+                            runs.push(new TextRun({ 
+                                text: content, 
+                                bold: true,
+                                font: "Calibri",
+                                size: 22
+                            }));
                         } else if (part.startsWith('<ITALIC>')) {
                             const content = part.replace(/<\/?ITALIC>/g, '');
-                            runs.push(new TextRun({ text: content, italics: true }));
+                            runs.push(new TextRun({ 
+                                text: content, 
+                                italics: true,
+                                font: "Calibri",
+                                size: 22
+                            }));
                         } else {
                             // Remove any remaining asterisks
                             const cleaned = part.replace(/\*/g, '');
                             if (cleaned) {
-                                runs.push(new TextRun({ text: cleaned }));
+                                runs.push(new TextRun({ 
+                                    text: cleaned,
+                                    font: "Calibri",
+                                    size: 22
+                                }));
                             }
                         }
                     }
                     
-                    return runs.length > 0 ? runs : [new TextRun({ text: text })];
+                    return runs.length > 0 ? runs : [new TextRun({ text: text, font: "Calibri", size: 22 })];
                 }
                 
-                // Create document
+                // Create document with proper page settings
                 const doc = new Document({
+                    styles: {
+                        default: {
+                            document: {
+                                run: {
+                                    font: "Calibri",
+                                    size: 22
+                                }
+                            }
+                        }
+                    },
                     sections: [{
-                        properties: {},
+                        properties: {
+                            page: {
+                                margin: {
+                                    top: convertInchesToTwip(1),
+                                    right: convertInchesToTwip(1),
+                                    bottom: convertInchesToTwip(1),
+                                    left: convertInchesToTwip(1)
+                                }
+                            }
+                        },
                         children: paragraphs
                     }]
                 });
