@@ -19,7 +19,7 @@ let selectedFilters = {
  * Initialize Memory UI
  */
 export async function initMemoryUI() {
-  console.log('🧠 [Memory UI] Initializing...');
+  // console.log('🧠 [Memory UI] Initializing...');
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser();

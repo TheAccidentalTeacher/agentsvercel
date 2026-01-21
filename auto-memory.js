@@ -37,7 +37,7 @@ const ACTIVITY_WEIGHTS = {
  * Initialize auto-memory system
  */
 export async function initAutoMemory() {
-  console.log('🤖 [Auto-Memory] Initializing...');
+  // console.log('🤖 [Auto-Memory] Initializing...');
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser();

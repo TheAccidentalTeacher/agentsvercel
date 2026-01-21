@@ -549,7 +549,7 @@ export class ResearchMemory {
         throw error;
       }
 
-      console.log(`☁️ Supabase: Pulled ${data.length} sessions`);
+      // console.log(`☁️ Supabase: Pulled ${data.length} sessions`);
 
       // Merge with localStorage (Supabase wins on conflicts)
       const localSessions = this.listLocal();
@@ -572,7 +572,7 @@ export class ResearchMemory {
 
       this.updateLastSync();
       setSyncStatus(SyncStatus.SYNCED);
-      console.log(`✅ Merged ${merged.length} sessions (${supabaseSessions.length} from cloud, ${localSessions.length} from local)`);
+      // console.log(`✅ Merged ${merged.length} sessions (${supabaseSessions.length} from cloud, ${localSessions.length} from local)`);
 
     } catch (error) {
       console.error('❌ Pull error:', error);

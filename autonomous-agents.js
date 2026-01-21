@@ -77,15 +77,15 @@ class AutonomousAgents {
 
   async loadTasks() {
     try {
-      console.log('🔍 Getting user...');
+      // console.log('🔍 Getting user...');
       const { data: { user } } = await window.supabase.auth.getUser();
       if (!user) {
-        console.log('⚠️ No user logged in');
+        // console.log('⚠️ No user logged in');
         return;
       }
-      console.log('✅ User found:', user.email);
+      // console.log('✅ User found:', user.email);
 
-      console.log('📊 Querying autonomous_tasks table...');
+      // console.log('📊 Querying autonomous_tasks table...');
       const { data, error } = await window.supabase
         .from('autonomous_tasks')
         .select('*')
@@ -97,7 +97,7 @@ class AutonomousAgents {
         return;
       }
 
-      console.log('✅ Tasks loaded from database:', data?.length || 0);
+      // console.log('✅ Tasks loaded from database:', data?.length || 0);
       this.tasks = data || [];
       this.updateUI();
     } catch (error) {
@@ -770,7 +770,7 @@ class AutonomousAgents {
 
   async checkAndExecuteDueTasks() {
     try {
-      console.log('🔍 [Poller] Checking for due tasks...');
+      // console.log('🔍 [Poller] Checking for due tasks...');
       
       const now = new Date().toISOString();
       const { data: { user } } = await window.supabase.auth.getUser();
@@ -789,7 +789,7 @@ class AutonomousAgents {
         return;
       }
 
-      console.log(`📊 [Poller] Found ${dueTasks?.length || 0} due tasks`);
+      // console.log(`📊 [Poller] Found ${dueTasks?.length || 0} due tasks`);
 
       if (dueTasks && dueTasks.length > 0) {
         for (const task of dueTasks) {

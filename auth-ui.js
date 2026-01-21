@@ -273,7 +273,7 @@ function toggleProfileDropdown() {
 // Sign-in button (header)
 signInBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  console.log('🔓 Sign-in button clicked');
+  // console.log('🔓 Sign-in button clicked');
   showAuthModal();
 });
 
@@ -282,7 +282,7 @@ const settingsSignInBtn = document.getElementById('settings-sign-in-btn');
 if (settingsSignInBtn) {
   settingsSignInBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    console.log('🔓 Settings sign-in button clicked');
+    // console.log('🔓 Settings sign-in button clicked');
     showAuthModal();
   });
 }
@@ -325,9 +325,9 @@ document.addEventListener('click', (e) => {
 
 // Listen for auth state changes
 onAuthStateChange((event, session) => {
-  console.log('🔐 Auth state changed:', event);
-  console.log('   Session:', session?.user?.email || 'null');
-  console.log('   User ID:', session?.user?.id || 'null');
+  // console.log('🔐 Auth state changed:', event);
+  // console.log('   Session:', session?.user?.email || 'null');
+  // console.log('   User ID:', session?.user?.id || 'null');
   
   updateAuthUI();
   

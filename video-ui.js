@@ -459,18 +459,6 @@ class VideoUI {
       }
     }
   }
-      
-      // Still save video to history (without transcript)
-      await videoHistory.saveVideo({
-        videoId: metadata.videoId,
-        title: metadata.title,
-        channelName: metadata.author,
-        thumbnail: metadata.thumbnail,
-        duration: metadata.duration,
-        transcript: null
-      });
-    }
-  }
 
   /**
    * Show indicator for transcript source (YouTube captions vs AI-generated)
