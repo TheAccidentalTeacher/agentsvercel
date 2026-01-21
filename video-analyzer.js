@@ -25,10 +25,13 @@ export class VideoAnalyzer {
             title,
             author,
             duration,
-            transcript: transcript.fullText,
-            segments: transcript.segments,
+            // ✅ Handle both transcript-based AND direct video analysis
+            transcript: transcript ? transcript.fullText : null,
+            segments: transcript ? transcript.segments : null,
             selectedPersonas,
-            requestedSummaries: ['tldr', 'abstract', 'detailed', 'timestamped']
+            requestedSummaries: ['tldr', 'abstract', 'detailed', 'timestamped'],
+            // If no transcript, Gemini will watch video directly
+            useVideoAnalysis: !transcript
         };
 
         try {

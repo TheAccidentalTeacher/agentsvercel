@@ -44,11 +44,18 @@ export default async function handler(req, res) {
       apiKey: process.env.ANTHROPIC_API_KEY
     });
 
-    const { videoId, title, author, duration, transcript, segments, selectedPersonas, requestedSummaries } = req.body;
+    const { videoId, title, author, duration, transcript, segments, selectedPersonas, requestedSummaries, useVideoAnalysis } = req.body;
 
     console.log(`📺 Analyzing video: ${title} (${videoId})`);
+    
+    // ✅ Handle videos WITHOUT transcripts - use Gemini AI to watch video directly
+    if (useVideoAnalysis && !transcript) {
+      console.log(`🎥 No transcript available - using Gemini AI to watch video directly`);
+      const geminiResponse = await analyzeVideoDirectly(videoId, title, author);
+      return res.status(200).json(geminiResponse);
+    }
 
-    // Generate summaries
+    // Generate summaries (requires transcript)
     const summaries = await generateSummaries(anthropic, title, author, transcript, segments, requestedSummaries);
     
     // Get agent analyses
@@ -163,6 +170,88 @@ async function generateAgentAnalyses(anthropic, title, author, transcript, perso
         analysis: message.content[0].text
       });
     } catch (error) {
+      console.error(`Error analyzing with ${personaKey}:`, error);
+    }
+  }
+
+  return analyses;
+}
+
+/**
+ * Analyze video directly using Gemini AI (when no transcript available)
+ * @param {string} videoId - YouTube video ID
+ * @param {string} title - Video title
+ * @param {string} author - Video author
+ * @returns {Promise<Object>} Analysis results
+ */
+async function analyzeVideoDirectly(videoId, title, author) {
+  const { GoogleGenerativeAI } = await import('@google/generative-ai');
+  
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  
+  console.log(`🎥 Gemini AI watching video: ${videoUrl}`);
+  
+  const prompt = `Analyze this YouTube video and provide:
+
+1. **TLDR** (one sentence): The absolute essence in 15-20 words
+2. **Abstract** (one paragraph): A concise 100-150 word summary  
+3. **Detailed Summary** (5-7 paragraphs): Comprehensive analysis with key points
+4. **Key Moments** (5-10 highlights): Important moments
+
+Video: "${title}" by ${author}
+URL: ${videoUrl}
+
+Provide your response in this JSON format:
+{
+  "tldr": "one sentence",
+  "abstract": "one paragraph", 
+  "detailed": "detailed paragraphs",
+  "keyMoments": [
+    {"timestamp": "MM:SS", "description": "what happens"}
+  ]
+}`;
+
+  try {
+    const result = await model.generateContent([
+      { text: prompt },
+      { fileData: { fileUri: videoUrl, mimeType: 'video/*' } }
+    ]);
+    
+    const response = result.response;
+    const text = response.text();
+    
+    // Parse JSON response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const summaries = jsonMatch ? JSON.parse(jsonMatch[0]) : {
+      tldr: text.substring(0, 200),
+      abstract: text.substring(0, 500),
+      detailed: text,
+      keyMoments: []
+    };
+    
+    return {
+      videoId,
+      title,
+      author,
+      summaries,
+      agentAnalyses: [{
+        persona: 'gemini-ai',
+        name: '🤖 Gemini AI',
+        emoji: '🤖',
+        analysis: text
+      }],
+      analyzedAt: new Date().toISOString(),
+      source: 'gemini-video-analysis'
+    };
+    
+  } catch (error) {
+    console.error('Gemini video analysis error:', error);
+    throw new Error(`Video analysis failed: ${error.message}`);
+  }
+}
       console.error(`Error generating ${personaKey} analysis:`, error);
     }
   }
