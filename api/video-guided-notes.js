@@ -38,110 +38,26 @@ export default async function handler(req, res) {
 
     const style = noteStyle || 'cornell';
     const grade = gradeLevel || 'middle school';
-    const videoTitle = videoData.title || 'this video';
+    const videoTitle = videoData.title || 'Video';
 
-    let styleInstructions = '';
-    
-    if (style === 'cornell') {
-      styleInstructions = `**CORNELL NOTES FORMAT:**
-Structure with three sections:
-1. **Questions (Left Column)**: Key questions that the notes answer
-2. **Notes (Right Column)**: Main content, facts, definitions, examples
-3. **Summary (Bottom)**: 3-4 sentence synthesis of main ideas
+    console.log(`📝 Generating ${style} notes for ${grade}...`);
 
-Return as JSON:
-{
-  "sections": [
-    {
-      "topic": "Section title",
-      "timestamp": "0:00",
-      "questions": ["Question 1?", "Question 2?"],
-      "notes": ["Note point 1", "Note point 2"],
-      "keyTerms": ["term1", "term2"]
-    }
-  ],
-  "summary": "Overall summary connecting all sections"
-}`;
-    } else if (style === 'outline') {
-      styleInstructions = `**HIERARCHICAL OUTLINE FORMAT:**
-Use standard outline structure (I, A, 1, a, etc.)
-
-Return as JSON:
-{
-  "title": "Main topic",
-  "outline": [
-    {
-      "level": 1,
-      "marker": "I",
-      "text": "First main topic",
-      "timestamp": "0:00",
-      "children": []
-    }
-  ]
-}`;
-    } else {
-      styleInstructions = `**FILL-IN-THE-BLANK FORMAT:**
-Create worksheets with key terms removed.
-
-Return as JSON:
-{
-  "sections": [
-    {
-      "topic": "Section title",
-      "timestamp": "0:00",
-      "blanks": [
-        {
-          "sentence": "The process of _____ converts sunlight into energy.",
-          "answer": "photosynthesis",
-          "hint": "Begins with 'photo'"
-        }
-      ]
-    }
-  ],
-  "wordBank": ["term1", "term2"]
-}`;
-    }
-
-    const prompt = `Create ${style} guided notes from this video transcript for ${grade} students.
-
-**VIDEO:** ${videoTitle}
-**DURATION:** ${videoData.duration || 'Unknown'}
-
-**TRANSCRIPT:**
-${transcript}
-
-${styleInstructions}`;
+    const userPrompt = getStylePrompt(style, videoTitle, grade, transcript);
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4000,
       temperature: 0.7,
-      messages: [{ role: 'user', content: prompt }]
+      messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const responseText = message.content[0].text;
-
-    let notesData;
-    try {
-      notesData = JSON.parse(responseText);
-    } catch (e) {
-      const jsonMatch = responseText.match(/```json\n([\s\S]+?)\n```/) || 
-                       responseText.match(/```\n([\s\S]+?)\n```/);
-      if (jsonMatch) {
-        notesData = JSON.parse(jsonMatch[1]);
-      } else {
-        throw new Error('Failed to parse JSON from response');
-      }
-    }
-
+    const markdown = message.content[0].text;
     console.log('✅ Guided notes generated');
 
-    // Format as markdown
-    const markdown = formatGuidedNotesAsMarkdown(notesData, videoTitle);
-
     return res.status(200).json({
-      ...notesData,
-      markdown: markdown
+      markdown: markdown,
+      videoTitle: videoTitle,
+      noteStyle: style
     });
 
   } catch (error) {
@@ -153,48 +69,232 @@ ${styleInstructions}`;
   }
 }
 
-function formatGuidedNotesAsMarkdown(notes, videoTitle) {
-  let md = `# ${videoTitle}\n\n`;
-  
-  if (notes.summary) {
-    md += `## Summary\n${notes.summary}\n\n---\n\n`;
-  }
-  
-  if (notes.sections && Array.isArray(notes.sections)) {
-    notes.sections.forEach((section, index) => {
-      md += `## ${section.topic || `Section ${index + 1}`}\n\n`;
-      
-      if (section.timestamp) {
-        md += `**⏱️ Timestamp:** ${section.timestamp}\n\n`;
-      }
-      
-      if (section.questions && section.questions.length > 0) {
-        md += `### 🤔 Questions to Consider\n`;
-        section.questions.forEach(q => {
-          md += `- ${q}\n`;
-        });
-        md += `\n`;
-      }
-      
-      if (section.notes && section.notes.length > 0) {
-        md += `### 📝 Notes\n`;
-        section.notes.forEach(note => {
-          md += `- ${note}\n`;
-        });
-        md += `\n`;
-      }
-      
-      if (section.keyTerms && section.keyTerms.length > 0) {
-        md += `### 🔑 Key Terms\n`;
-        section.keyTerms.forEach(term => {
-          md += `- **${term}**\n`;
-        });
-        md += `\n`;
-      }
-      
-      md += `---\n\n`;
-    });
-  }
-  
-  return md;
+function getStylePrompt(style, videoTitle, grade, transcript) {
+  const prompts = {
+    cornell: `Create Cornell Notes based on this video content.
+
+**VIDEO:** ${videoTitle}
+**GRADE LEVEL:** ${grade}
+
+**CONTENT:**
+${transcript}
+
+Format as clean markdown for Cornell Notes:
+
+# Cornell Notes: ${videoTitle}
+
+| Questions | Notes |
+|-----------|-------|
+| *Write questions here* | *Write notes here* |
+
+---
+
+## Section 1: [Topic Name]
+
+### ❓ Questions (Left Column)
+- [Key question 1]
+- [Key question 2]
+- [Key question 3]
+
+### 📝 Notes (Right Column)
+- [Main point 1]
+- [Main point 2]
+- [Supporting detail]
+- [Example or definition]
+
+### 🔑 Key Terms
+- **[Term 1]** - definition
+- **[Term 2]** - definition
+
+---
+
+(Repeat for each major section of the video - aim for 5-8 sections)
+
+---
+
+## 📋 Summary
+[3-5 sentences summarizing the main ideas from all sections. This should synthesize the key takeaways.]
+
+---
+*Cornell Notes help you organize information for better retention and review.*`,
+
+    outline: `Create a Hierarchical Outline based on this video content.
+
+**VIDEO:** ${videoTitle}
+**GRADE LEVEL:** ${grade}
+
+**CONTENT:**
+${transcript}
+
+Format as a clean markdown outline:
+
+# Outline: ${videoTitle}
+
+## I. [First Main Topic]
+   A. [Subtopic]
+      1. [Detail]
+      2. [Detail]
+   B. [Subtopic]
+      1. [Detail]
+         a. [Sub-detail]
+         b. [Sub-detail]
+      2. [Detail]
+
+## II. [Second Main Topic]
+   A. [Subtopic]
+      1. [Detail]
+      2. [Detail]
+   B. [Subtopic]
+
+## III. [Third Main Topic]
+   A. [Subtopic]
+   B. [Subtopic]
+
+(Continue with all major topics from the video)
+
+---
+
+### 📌 Key Takeaways
+1. [Most important point]
+2. [Second most important point]
+3. [Third most important point]
+
+---
+*Outlines help you see the structure and hierarchy of information.*`,
+
+    fillinblank: `Create a Fill-in-the-Blank Worksheet based on this video content.
+
+**VIDEO:** ${videoTitle}
+**GRADE LEVEL:** ${grade}
+
+**CONTENT:**
+${transcript}
+
+Format as a clean markdown worksheet:
+
+# Fill-in-the-Blank: ${videoTitle}
+
+**Instructions:** Use the words from the Word Bank to complete each sentence.
+
+---
+
+## 📚 Word Bank
+| | | | |
+|---|---|---|---|
+| [word1] | [word2] | [word3] | [word4] |
+| [word5] | [word6] | [word7] | [word8] |
+| [word9] | [word10] | [word11] | [word12] |
+
+---
+
+## Section 1: [Topic]
+
+1. The process of ______________ involves [context clue].
+
+2. According to the video, ______________ is important because [reason].
+
+3. ______________ and ______________ work together to [action].
+
+4. The main difference between ______________ and ______________ is [explanation].
+
+5. Scientists discovered that ______________ when they [context].
+
+---
+
+## Section 2: [Topic]
+
+6. [Another fill-in-blank sentence with clear context clues]
+
+7. [Another sentence]
+
+8. [Another sentence]
+
+(Continue with 15-20 total blanks organized by topic)
+
+---
+
+## ✅ Answer Key
+
+| # | Answer |
+|---|--------|
+| 1 | [answer] |
+| 2 | [answer] |
+| 3 | [answer, answer] |
+(Continue for all blanks)
+
+---
+*Fill-in-the-blank worksheets help reinforce key vocabulary and concepts.*`,
+
+    guided: `Create Guided Questions with content summaries based on this video.
+
+**VIDEO:** ${videoTitle}
+**GRADE LEVEL:** ${grade}
+
+**CONTENT:**
+${transcript}
+
+Format as clean markdown:
+
+# Guided Questions: ${videoTitle}
+
+**Instructions:** Read each section summary, then answer the questions that follow.
+
+---
+
+## Section 1: [Topic Name] *(0:00 - 3:00)*
+
+### 📖 Content Summary
+[2-3 paragraph summary of this section of the video. Include key facts, concepts, and examples mentioned.]
+
+### ❓ Comprehension Questions
+
+1. **Recall:** [Question testing basic recall]
+   
+   *Space for answer:* _______________________________________________
+
+2. **Understand:** [Question testing understanding]
+   
+   *Space for answer:* _______________________________________________
+
+3. **Apply:** [Question asking students to apply the concept]
+   
+   *Space for answer:* _______________________________________________
+
+---
+
+## Section 2: [Topic Name] *(3:00 - 6:00)*
+
+### 📖 Content Summary
+[2-3 paragraph summary]
+
+### ❓ Comprehension Questions
+
+1. [Question]
+   *Space for answer:* _______________________________________________
+
+2. [Question]
+   *Space for answer:* _______________________________________________
+
+3. [Question]
+   *Space for answer:* _______________________________________________
+
+---
+
+(Continue for 4-6 sections covering the whole video)
+
+---
+
+## 🎯 Reflection Questions
+
+1. What was the most surprising thing you learned from this video?
+
+2. How does this connect to something you already knew?
+
+3. What questions do you still have after watching?
+
+---
+*Guided questions help you actively engage with video content.*`
+  };
+
+  return prompts[style] || prompts.cornell;
 }
