@@ -1,6 +1,7 @@
 /**
  * Vercel API Route: Video Guided Notes
  * Creates structured note-taking templates from video transcripts
+ * Now includes optional reading passage and exit ticket
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { videoData, transcript, noteStyle, gradeLevel } = req.body;
+    const { videoData, transcript, noteStyle, gradeLevel, includeReading, includeExitTicket } = req.body;
 
     if (!transcript || !videoData) {
       return res.status(400).json({ 
@@ -41,14 +42,27 @@ export default async function handler(req, res) {
     const videoTitle = videoData.title || 'Video';
 
     console.log(`📝 Generating ${style} notes for ${grade}...`);
+    if (includeReading) console.log('📖 Including reading passage');
+    if (includeExitTicket) console.log('🎫 Including exit ticket');
 
-    const userPrompt = getStylePrompt(style, videoTitle, grade, transcript);
+    // Build the combined prompt
+    let fullPrompt = getStylePrompt(style, videoTitle, grade, transcript);
+    
+    // Add reading passage request if enabled
+    if (includeReading) {
+      fullPrompt += getReadingPassagePrompt(videoTitle, grade);
+    }
+    
+    // Add exit ticket request if enabled
+    if (includeExitTicket) {
+      fullPrompt += getExitTicketPrompt(videoTitle, grade);
+    }
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 4000,
+      max_tokens: 6000, // Increased for additional content
       temperature: 0.7,
-      messages: [{ role: 'user', content: userPrompt }]
+      messages: [{ role: 'user', content: fullPrompt }]
     });
 
     const markdown = message.content[0].text;
@@ -57,7 +71,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       markdown: markdown,
       videoTitle: videoTitle,
-      noteStyle: style
+      noteStyle: style,
+      includesReading: includeReading,
+      includesExitTicket: includeExitTicket
     });
 
   } catch (error) {
@@ -69,6 +85,130 @@ export default async function handler(req, res) {
   }
 }
 
+/**
+ * Reading Passage Prompt - 3 paragraphs at accessible reading level
+ * Target: 7th grade below grade level = approximately 5th-6th grade Lexile
+ */
+function getReadingPassagePrompt(videoTitle, grade) {
+  return `
+
+---
+
+## ADDITIONAL REQUEST: INFORMATIONAL READING PASSAGE
+
+After the notes above, create a **3-paragraph informational reading passage** based on the same video content.
+
+**CRITICAL READING LEVEL REQUIREMENTS:**
+This reading is for 7th grade students who read BELOW grade level. Write at a 5th-6th grade reading level (Lexile 700-900).
+
+**Readability Guidelines - YOU MUST FOLLOW:**
+- Use SHORT sentences (10-15 words average)
+- Use SIMPLE, common vocabulary (avoid jargon, define any necessary terms)
+- Use HIGH-FREQUENCY words that struggling readers recognize
+- Keep paragraphs to 4-6 sentences each
+- Use clear topic sentences that state the main idea directly
+- Use concrete examples instead of abstract concepts
+- Avoid complex sentence structures (no multiple embedded clauses)
+- Use transition words students know (First, Next, Then, Also, Finally)
+- Define any technical terms in parentheses immediately after using them
+
+**Structure:**
+- **Paragraph 1 (Introduction):** Hook the reader and introduce the main topic. State what the passage is about in simple terms.
+- **Paragraph 2 (Body):** Explain the most important information from the video. Include 2-3 key facts with specific details.
+- **Paragraph 3 (Conclusion):** Summarize why this matters and connect to students' lives or the bigger picture.
+
+Format as:
+
+---
+
+# 📖 Reading Passage: ${videoTitle}
+
+[Paragraph 1 - Introduction]
+
+[Paragraph 2 - Key Information]
+
+[Paragraph 3 - Conclusion and Connection]
+
+---`;
+}
+
+/**
+ * Exit Ticket Prompt - 2 DOK 3 questions
+ * DOK 3 = Strategic Thinking: requires reasoning, planning, using evidence
+ */
+function getExitTicketPrompt(videoTitle, grade) {
+  return `
+
+---
+
+## ADDITIONAL REQUEST: DOK 3 EXIT TICKET
+
+After everything above, create **2 DOK Level 3 (Strategic Thinking) exit ticket questions** based on the reading passage.
+
+**WHAT IS DOK 3?**
+DOK 3 questions require:
+- Reasoning and planning
+- Explaining WHY or HOW (not just WHAT)
+- Using evidence to support thinking
+- Making connections or comparisons
+- Drawing conclusions based on multiple pieces of information
+- Solving non-routine problems
+
+**DOK 3 is NOT:**
+- Simple recall (DOK 1): "What is the capital of Russia?"
+- Basic comprehension (DOK 2): "Describe two features of Siberia"
+
+**DOK 3 Examples:**
+- "Based on what you read, why might [X] lead to [Y]? Use evidence from the passage."
+- "How does [concept A] connect to [concept B]? Explain your reasoning."
+- "If [situation changed], how would that affect [outcome]? Support your answer."
+
+**READING LEVEL REQUIREMENTS:**
+Write questions at 5th-6th grade reading level:
+- Use simple, clear language
+- Avoid complex vocabulary in the question itself
+- Provide sentence starters to scaffold responses
+
+Format as:
+
+---
+
+# 🎫 Exit Ticket: ${videoTitle}
+
+**Directions:** Answer BOTH questions in complete sentences. Use evidence from the reading to support your answers.
+
+---
+
+**Question 1:** [DOK 3 question requiring reasoning and evidence]
+
+*Sentence starter:* Based on the reading, I think... because...
+
+**Your answer:** _________________________________________________
+
+_________________________________________________
+
+_________________________________________________
+
+---
+
+**Question 2:** [DOK 3 question requiring connections or conclusions]
+
+*Sentence starter:* This connects to... because the passage shows that...
+
+**Your answer:** _________________________________________________
+
+_________________________________________________
+
+_________________________________________________
+
+---
+
+*Remember: Strong answers explain your thinking AND include evidence from the reading!*`;
+}
+
+/**
+ * Get the style-specific prompt for guided notes
+ */
 function getStylePrompt(style, videoTitle, grade, transcript) {
   const prompts = {
     cornell: `Create Cornell Notes based on this video content.
