@@ -82,7 +82,7 @@ Make this comprehensive, detailed, and highly informative. Each highlight should
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 3500,
+      max_tokens: 8000,
       temperature: 0.3,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]
