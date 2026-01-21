@@ -1154,7 +1154,11 @@
                 if (!response.ok) throw new Error('Quiz generation failed');
                 const result = await response.json();
                 
-                showToolOutput('Quiz', result.markdown || JSON.stringify(result, null, 2), result);
+                window.currentVideoData = videoUI.currentVideo;
+                showToolOutput('Quiz', result.markdown || JSON.stringify(result, null, 2), {
+                    raw: result,
+                    plainText: result.markdown
+                });
                 console.log('✅ Quiz generated successfully');
             } catch (error) {
                 console.error('❌ Quiz generation failed:', error);
@@ -1218,7 +1222,11 @@
                 if (!response.ok) throw new Error('Lesson plan generation failed');
                 const result = await response.json();
                 
-                showToolOutput('Lesson Plan', result.markdown || result.plan || JSON.stringify(result, null, 2), result);
+                window.currentVideoData = videoUI.currentVideo;
+                showToolOutput('Lesson Plan', result.markdown || result.plan || JSON.stringify(result, null, 2), {
+                    raw: result,
+                    plainText: result.markdown || result.plan
+                });
                 console.log('✅ Lesson plan generated successfully');
             } catch (error) {
                 console.error('❌ Lesson plan generation failed:', error);
@@ -1270,7 +1278,12 @@
                 
                 if (!response.ok) throw new Error('Discussion questions generation failed');
                 const result = await response.json();
-                showToolOutput('Discussion Questions', result.markdown || JSON.stringify(result, null, 2), result);
+                
+                window.currentVideoData = videoUI.currentVideo;
+                showToolOutput('Discussion Questions', result.markdown || JSON.stringify(result, null, 2), {
+                    raw: result,
+                    plainText: result.markdown
+                });
                 console.log('✅ Discussion questions generated successfully');
             } catch (error) {
                 console.error('❌ Discussion questions generation failed:', error);
@@ -1371,7 +1384,12 @@
                 
                 if (!response.ok) throw new Error('Vocabulary generation failed');
                 const result = await response.json();
-                showToolOutput('Vocabulary List', result.markdown || JSON.stringify(result, null, 2), result);
+                
+                window.currentVideoData = videoUI.currentVideo;
+                showToolOutput('Vocabulary List', result.markdown || JSON.stringify(result, null, 2), {
+                    raw: result,
+                    plainText: result.markdown
+                });
                 console.log('✅ Vocabulary list generated successfully');
             } catch (error) {
                 console.error('❌ Vocabulary generation failed:', error);
@@ -1450,7 +1468,14 @@
                 
                 if (!response.ok) throw new Error('Guided notes generation failed');
                 const result = await response.json();
-                showToolOutput(styleNames[noteStyle], result.markdown || JSON.stringify(result, null, 2), result);
+                
+                // Store video data for export filenames
+                window.currentVideoData = videoUI.currentVideo;
+                
+                showToolOutput(styleNames[noteStyle], result.markdown || JSON.stringify(result, null, 2), {
+                    raw: result,
+                    plainText: result.markdown
+                });
                 console.log('✅ Guided notes generated successfully');
             } catch (error) {
                 console.error('❌ Guided notes generation failed:', error);
@@ -1580,7 +1605,18 @@
         window.copyCreatedContent = function() {
             if (!window.currentGeneratedContent) return;
             
-            navigator.clipboard.writeText(window.currentGeneratedContent.markdown).then(() => {
+            const markdown = window.currentGeneratedContent.markdown;
+            const html = markdownToHTML(markdown);
+            
+            // Copy both HTML and plain text to clipboard
+            const blob = new Blob([html], { type: 'text/html' });
+            const blobPlain = new Blob([markdown], { type: 'text/plain' });
+            const clipboardItem = new ClipboardItem({
+                'text/html': blob,
+                'text/plain': blobPlain
+            });
+            
+            navigator.clipboard.write([clipboardItem]).then(() => {
                 // Show success feedback
                 const btn = event.target;
                 const originalText = btn.innerHTML;
@@ -1590,6 +1626,10 @@
                     btn.innerHTML = originalText;
                     btn.style.background = '';
                 }, 2000);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                // Fallback to plain text
+                navigator.clipboard.writeText(markdown);
             });
         };
         
