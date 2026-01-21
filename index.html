@@ -1437,10 +1437,14 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        videoId: videoUI.currentVideo.videoId,
-                        videoTitle: videoUI.currentVideo.title,
+                        videoData: {
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author
+                        },
                         transcript: summary,
-                        options: { noteStyle: noteStyle, gradeLevel: gradeLevel }
+                        noteStyle: noteStyle,
+                        gradeLevel: gradeLevel
                     })
                 });
                 
