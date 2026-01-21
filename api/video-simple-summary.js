@@ -57,24 +57,32 @@ export default async function handler(req, res) {
 **Content**:
 ${contentToAnalyze}
 
-Create a summary in this EXACT format:
+Create a detailed, comprehensive summary in this EXACT format:
 
 ## Summary
-[One paragraph, 100-150 words explaining what the video is about]
+[Two to three detailed paragraphs, 250-350 words total. Include:
+- Main topic and purpose of the video
+- Key themes and important concepts covered
+- Major insights, findings, or takeaways
+- Overall structure and flow of content
+Make it substantive and informative.]
 
 ## Highlights
-- **[00:00]** [Brief description of what happens at this timestamp]
-- **[02:35]** [Brief description]
-- **[05:13]** [Brief description]
-- **[07:45]** [Brief description]
-- **[10:20]** [Brief description]
-(Include 5-10 key moments with timestamps)
+- **[00:00]** [Detailed description of the opening and what this section covers - 2-3 sentences]
+- **[03:15]** [Comprehensive explanation of this key point or segment - 2-3 sentences]
+- **[06:45]** [Thorough description of what's discussed here - 2-3 sentences]
+- **[10:20]** [Detailed coverage of this important moment - 2-3 sentences]
+- **[13:50]** [In-depth explanation of this section - 2-3 sentences]
+- **[17:30]** [Complete description of what happens here - 2-3 sentences]
+- **[21:00]** [Detailed breakdown of this key moment - 2-3 sentences]
+- **[24:15]** [Thorough explanation of this segment - 2-3 sentences]
+(Include 8-12 key moments with substantial descriptions for each)
 
-Keep it simple, clear, and actionable like Monica.ai does.`;
+Make this comprehensive, detailed, and highly informative. Each highlight should provide real substance about what's covered at that timestamp.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2000,
+      max_tokens: 3500,
       temperature: 0.3,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]
