@@ -1100,25 +1100,61 @@
         
         // Generate Quiz from Video
         window.generateQuizFromVideo = async function() {
-            if (!window.videoTools) {
-                alert('Please load a video and transcript first!');
+            // Get current video from the video UI
+            const videoUI = window.currentVideoUI;
+            if (!videoUI || !videoUI.currentVideo) {
+                alert('Please load a video first!');
                 return;
             }
             
             console.log('📝 Generating quiz...');
-            showToolLoading('Generating Quiz', 'This may take 30-60 seconds...');
+            showToolLoading('Generating Quiz', 'Creating quiz from video summary...');
             
             try {
-                const result = await window.videoTools.generateQuiz({
-                    numMultipleChoice: 5,
-                    numShortAnswer: 3,
-                    numTrueFalse: 5,
-                    numFillInBlank: 5,
-                    difficulty: 'mixed',
-                    includeTimestamps: true
+                // Get or generate summary first
+                let summary = videoUI.currentSummary;
+                if (!summary) {
+                    console.log('📊 Fetching video summary first...');
+                    const summaryResponse = await fetch('/api/video-simple-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author,
+                            transcript: videoUI.currentTranscript
+                        })
+                    });
+                    
+                    if (!summaryResponse.ok) throw new Error('Failed to generate summary');
+                    const summaryData = await summaryResponse.json();
+                    summary = summaryData.summary;
+                    videoUI.currentSummary = summary; // Cache it
+                }
+                
+                // Generate quiz using summary
+                const response = await fetch('/api/video-quiz', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoId: videoUI.currentVideo.videoId,
+                        videoTitle: videoUI.currentVideo.title,
+                        transcript: summary, // Use summary as content
+                        options: {
+                            numMultipleChoice: 5,
+                            numShortAnswer: 3,
+                            numTrueFalse: 5,
+                            numFillInBlank: 5,
+                            difficulty: 'mixed',
+                            includeTimestamps: true
+                        }
+                    })
                 });
                 
-                showToolOutput('Quiz', result.markdown, result);
+                if (!response.ok) throw new Error('Quiz generation failed');
+                const result = await response.json();
+                
+                showToolOutput('Quiz', result.markdown || JSON.stringify(result, null, 2), result);
                 console.log('✅ Quiz generated successfully');
             } catch (error) {
                 console.error('❌ Quiz generation failed:', error);
@@ -1129,24 +1165,60 @@
         
         // Generate Lesson Plan from Video
         window.generateLessonPlanFromVideo = async function() {
-            if (!window.videoTools) {
-                alert('Please load a video and transcript first!');
+            // Get current video from the video UI
+            const videoUI = window.currentVideoUI;
+            if (!videoUI || !videoUI.currentVideo) {
+                alert('Please load a video first!');
                 return;
             }
             
             console.log('📚 Generating lesson plan...');
-            showToolLoading('Generating Lesson Plan', 'This may take 30-60 seconds...');
+            showToolLoading('Generating Lesson Plan', 'Creating comprehensive lesson plan...');
             
             try {
-                const result = await window.videoTools.generateLessonPlan({
-                    gradeLevel: '9-12',
-                    duration: '45 minutes',
-                    subject: 'General',
-                    includeActivities: true,
-                    includeDifferentiation: true
+                // Get or generate summary first
+                let summary = videoUI.currentSummary;
+                if (!summary) {
+                    console.log('📊 Fetching video summary first...');
+                    const summaryResponse = await fetch('/api/video-simple-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author,
+                            transcript: videoUI.currentTranscript
+                        })
+                    });
+                    
+                    if (!summaryResponse.ok) throw new Error('Failed to generate summary');
+                    const summaryData = await summaryResponse.json();
+                    summary = summaryData.summary;
+                    videoUI.currentSummary = summary; // Cache it
+                }
+                
+                // Generate lesson plan using summary
+                const response = await fetch('/api/video-lesson-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoId: videoUI.currentVideo.videoId,
+                        videoTitle: videoUI.currentVideo.title,
+                        transcript: summary, // Use summary as content
+                        options: {
+                            gradeLevel: '9-12',
+                            duration: '45 minutes',
+                            subject: 'General',
+                            includeActivities: true,
+                            includeDifferentiation: true
+                        }
+                    })
                 });
                 
-                showToolOutput('Lesson Plan', result.markdown, result);
+                if (!response.ok) throw new Error('Lesson plan generation failed');
+                const result = await response.json();
+                
+                showToolOutput('Lesson Plan', result.markdown || result.plan || JSON.stringify(result, null, 2), result);
                 console.log('✅ Lesson plan generated successfully');
             } catch (error) {
                 console.error('❌ Lesson plan generation failed:', error);

@@ -16,8 +16,12 @@ class VideoUI {
     this.currentVideo = null;
     this.currentTranscript = null;
     this.currentAnalysis = null;
+    this.currentSummary = null; // Store summary for reuse
     this.analyzer = new VideoAnalyzer();
     this.init();
+    
+    // Store globally for Create tab access
+    window.currentVideoUI = this;
   }
 
   init() {
@@ -675,6 +679,9 @@ class VideoUI {
       }
 
       const data = await response.json();
+      
+      // Cache the summary for Create tab reuse
+      this.currentSummary = data.summary;
       
       // Display simple summary (Monica.ai style)
       summaryContainer.innerHTML = `
