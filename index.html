@@ -1294,8 +1294,9 @@
         
         // Generate DOK 3-4 Project from Video
         window.generateDOKProjectFromVideo = async function() {
-            if (!window.videoTools) {
-                alert('Please load a video and transcript first!');
+            const videoUI = window.currentVideoUI;
+            if (!videoUI || !videoUI.currentVideo) {
+                alert('Please load a video first!');
                 return;
             }
             
@@ -1320,15 +1321,47 @@
             showToolLoading(`Generating DOK ${dokLevel} Project`, 'Extended projects require 60-90 seconds...');
             
             try {
-                const result = await window.videoTools.generateDOKProject({
-                    dokLevel: parseInt(dokLevel),
-                    projectType: projectType,
-                    duration: dokLevel === '4' ? '2-3 weeks' : '1-2 weeks',
-                    gradeLevel: '9-12',
-                    subject: 'General'
+                // Get or generate summary
+                let summary = videoUI.currentSummary;
+                if (!summary) {
+                    const summaryResponse = await fetch('/api/video-simple-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author,
+                            transcript: videoUI.currentTranscript
+                        })
+                    });
+                    if (!summaryResponse.ok) throw new Error('Failed to generate summary');
+                    const summaryData = await summaryResponse.json();
+                    summary = summaryData.summary;
+                    videoUI.currentSummary = summary;
+                }
+                
+                const response = await fetch('/api/video-dok-project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoId: videoUI.currentVideo.videoId,
+                        videoTitle: videoUI.currentVideo.title,
+                        transcript: summary,
+                        dokLevel: parseInt(dokLevel),
+                        projectType: projectType,
+                        duration: dokLevel === '4' ? '2-3 weeks' : '1-2 weeks',
+                        gradeLevel: '9-12'
+                    })
                 });
                 
-                showToolOutput(`DOK ${dokLevel} Project`, result.markdown, result);
+                if (!response.ok) throw new Error('DOK project generation failed');
+                const result = await response.json();
+                
+                window.currentVideoData = videoUI.currentVideo;
+                showToolOutput(`DOK ${dokLevel} Project`, result.markdown || JSON.stringify(result, null, 2), {
+                    raw: result,
+                    plainText: result.markdown
+                });
                 console.log('✅ DOK project generated successfully');
             } catch (error) {
                 console.error('❌ DOK project generation failed:', error);
@@ -1486,8 +1519,9 @@
         
         // Generate Graphic Organizer from Video
         window.generateGraphicOrganizerFromVideo = async function() {
-            if (!window.videoTools) {
-                alert('Please load a video and transcript first!');
+            const videoUI = window.currentVideoUI;
+            if (!videoUI || !videoUI.currentVideo) {
+                alert('Please load a video first!');
                 return;
             }
             
@@ -1519,12 +1553,45 @@
             showToolLoading(`Generating ${organizerType}`, 'Creating visual learning organizer...');
             
             try {
-                const result = await window.videoTools.generateGraphicOrganizer({
-                    organizerType: organizerType,
-                    gradeLevel: gradeLevel
+                // Get or generate summary
+                let summary = videoUI.currentSummary;
+                if (!summary) {
+                    const summaryResponse = await fetch('/api/video-simple-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author,
+                            transcript: videoUI.currentTranscript
+                        })
+                    });
+                    if (!summaryResponse.ok) throw new Error('Failed to generate summary');
+                    const summaryData = await summaryResponse.json();
+                    summary = summaryData.summary;
+                    videoUI.currentSummary = summary;
+                }
+                
+                const response = await fetch('/api/video-graphic-organizer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoId: videoUI.currentVideo.videoId,
+                        videoTitle: videoUI.currentVideo.title,
+                        transcript: summary,
+                        organizerType: organizerType,
+                        gradeLevel: gradeLevel
+                    })
                 });
                 
-                showToolOutput(organizerType, result.markdown, result);
+                if (!response.ok) throw new Error('Graphic organizer generation failed');
+                const result = await response.json();
+                
+                window.currentVideoData = videoUI.currentVideo;
+                showToolOutput(organizerType, result.markdown || JSON.stringify(result, null, 2), {
+                    raw: result,
+                    plainText: result.markdown
+                });
                 console.log('✅ Graphic organizer generated successfully');
             } catch (error) {
                 console.error('❌ Graphic organizer generation failed:', error);

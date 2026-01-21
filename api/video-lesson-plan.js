@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { videoId, videoTitle, transcript, duration, prompt, options } = req.body;
+    const { videoId, videoTitle, transcript, options = {} } = req.body;
 
     if (!videoId || !transcript) {
       return res.status(400).json({ 
@@ -38,44 +38,109 @@ export default async function handler(req, res) {
       apiKey: process.env.ANTHROPIC_API_KEY
     });
 
+    const gradeLevel = options.gradeLevel || '9-12';
+    const duration = options.duration || '45 minutes';
+    const subject = options.subject || 'General';
+
+    const userPrompt = `Create a comprehensive, ready-to-use lesson plan based on this video content.
+
+**VIDEO:** ${videoTitle}
+**GRADE LEVEL:** ${gradeLevel}
+**CLASS DURATION:** ${duration}
+**SUBJECT AREA:** ${subject}
+
+**CONTENT:**
+${transcript}
+
+Format your response as clean markdown:
+
+# Lesson Plan: ${videoTitle}
+
+## Overview
+| | |
+|---|---|
+| **Grade Level** | ${gradeLevel} |
+| **Duration** | ${duration} |
+| **Subject** | ${subject} |
+
+## Learning Objectives
+By the end of this lesson, students will be able to:
+1. [Measurable objective using Bloom's verbs]
+2. [Measurable objective using Bloom's verbs]
+3. [Measurable objective using Bloom's verbs]
+
+## Standards Alignment
+- [Relevant standard 1]
+- [Relevant standard 2]
+
+## Materials Needed
+- [ ] Video: ${videoTitle}
+- [ ] [Additional materials]
+
+## Lesson Outline
+
+### 🎯 Hook/Anticipatory Set (5 minutes)
+[Engaging activity to capture student interest]
+
+### 📺 Video Viewing (10-15 minutes)
+**Before viewing:**
+- [Pre-viewing questions or focus areas]
+
+**During viewing:**
+- [Note-taking instructions]
+
+**After viewing:**
+- [Reflection prompt]
+
+### 📝 Guided Practice (10-15 minutes)
+[Activity where teacher guides students through applying concepts]
+
+### 🎓 Independent Practice (10 minutes)
+[Activity students complete on their own]
+
+### 🔄 Closure (5 minutes)
+[Summarization activity, exit ticket, or reflection]
+
+## Assessment
+**Formative:**
+- [How you'll check understanding during the lesson]
+
+**Summative:**
+- [End-of-lesson assessment]
+
+## Differentiation
+
+### For Struggling Learners:
+- [Accommodations and supports]
+
+### For Advanced Learners:
+- [Extensions and challenges]
+
+### For English Language Learners:
+- [Language supports]
+
+## Extension Activities
+1. [Optional follow-up activity]
+2. [Optional homework]
+
+---
+*Lesson plan generated from video content*`;
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4000,
       temperature: 0.7,
-      system: `You are an expert educator and curriculum designer specializing in creating comprehensive, practical lesson plans. You create plans that:
-- Use backward design principles (start with objectives)
-- Include engaging hooks and anticipatory sets
-- Incorporate active learning strategies
-- Provide differentiation for diverse learners
-- Include formative and summative assessments
-- Follow educational best practices (Bloom's Taxonomy, Webb's DOK, etc.)
-- Are immediately usable by teachers
-- Integrate technology effectively
-- Support classical education principles when appropriate
-
-Return your response ONLY as valid JSON matching the requested structure. Do not include markdown formatting or code blocks.`,
-      messages: [{ role: 'user', content: prompt }]
+      messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const responseText = message.content[0].text;
-    console.log('📝 Claude response received, parsing...');
-
-    let lessonPlan;
-    try {
-      lessonPlan = JSON.parse(responseText);
-    } catch (e) {
-      const jsonMatch = responseText.match(/```json\n([\s\S]+?)\n```/) || 
-                       responseText.match(/```\n([\s\S]+?)\n```/);
-      if (jsonMatch) {
-        lessonPlan = JSON.parse(jsonMatch[1]);
-      } else {
-        throw new Error('Failed to parse JSON from response');
-      }
-    }
-
+    const markdown = message.content[0].text;
     console.log('✅ Lesson plan generated successfully');
 
-    return res.status(200).json(lessonPlan);
+    return res.status(200).json({
+      markdown: markdown,
+      videoId: videoId,
+      videoTitle: videoTitle
+    });
 
   } catch (error) {
     console.error('❌ Error generating lesson plan:', error);

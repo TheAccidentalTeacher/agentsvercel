@@ -24,13 +24,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { videoData, transcript, organizerType, gradeLevel } = req.body;
+    const { videoId, videoTitle, videoData, transcript, organizerType, gradeLevel } = req.body;
 
-    console.log('[Graphic Organizer] Request received:', {
-      organizerType,
-      gradeLevel,
-      videoTitle: videoData?.title
-    });
+    const title = videoTitle || videoData?.title || 'Video';
+    const id = videoId || videoData?.videoId || 'unknown';
+    const type = organizerType || 'Concept Map';
+    const grade = gradeLevel || 'middle school';
+
+    console.log('[Graphic Organizer] Request received:', { type, grade, title });
 
     if (!transcript || transcript.length === 0) {
       return res.status(400).json({ error: 'Transcript is required' });
@@ -50,53 +51,37 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid transcript format' });
     }
 
-    const maxLength = 12000;
-    const truncatedTranscript = transcriptText.length > maxLength 
-      ? transcriptText.substring(0, maxLength) + '\n\n[Transcript truncated for length...]'
-      : transcriptText;
+    const userPrompt = `Create a ${type} graphic organizer based on this video content.
 
-    const prompt = `You are an expert educator creating visual graphic organizers for ${gradeLevel || 'middle school'} students.
+**VIDEO:** ${title}
+**GRADE LEVEL:** ${grade}
+**ORGANIZER TYPE:** ${type}
 
-**VIDEO:** ${videoData?.title || 'Video'}
-**ORGANIZER TYPE:** ${organizerType || 'concept-map'}
+**CONTENT:**
+${transcriptText}
 
-**TRANSCRIPT:**
-${truncatedTranscript}
+Create a detailed ${type} in markdown format that helps students visualize the key concepts and relationships.
 
-Create a ${organizerType || 'concept-map'} graphic organizer that helps students visualize the key concepts and relationships from this video.
+${getOrganizerInstructions(type)}
 
-Return as JSON with appropriate structure for the organizer type:
-- For concept-map: { "centerConcept": "string", "branches": [{ "concept": "string", "connections": ["string"] }] }
-- For venn-diagram: { "left": { "label": "string", "items": ["string"] }, "right": { "label": "string", "items": ["string"] }, "overlap": ["string"] }
-- For timeline: { "events": [{ "date": "string", "event": "string", "details": "string" }] }
-- For cause-effect: { "causes": [{ "cause": "string", "effects": ["string"] }] }
-- For compare-contrast: { "items": [{ "name": "string", "attributes": {} }], "categories": ["string"] }`;
+Format your response as clean, printable markdown that teachers can use directly.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4000,
       temperature: 0.7,
-      messages: [{ role: 'user', content: prompt }]
+      messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const responseText = message.content[0].text;
-
-    let organizerData;
-    try {
-      organizerData = JSON.parse(responseText);
-    } catch (e) {
-      const jsonMatch = responseText.match(/```json\n([\s\S]+?)\n```/) || 
-                       responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        organizerData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-      } else {
-        throw new Error('Failed to parse JSON from response');
-      }
-    }
-
+    const markdown = message.content[0].text;
     console.log('✅ Graphic organizer generated');
 
-    return res.status(200).json(organizerData);
+    return res.status(200).json({
+      markdown: markdown,
+      videoId: id,
+      videoTitle: title,
+      organizerType: type
+    });
 
   } catch (error) {
     console.error('❌ Error generating graphic organizer:', error);
@@ -105,4 +90,132 @@ Return as JSON with appropriate structure for the organizer type:
       message: error.message
     });
   }
+}
+
+function getOrganizerInstructions(type) {
+  const instructions = {
+    'Concept Map': `
+# Concept Map: [Title]
+
+## 🎯 Central Concept
+**[Main Topic]**
+
+## 🔗 Connected Concepts
+
+### Branch 1: [Subtopic]
+- Key idea 1
+- Key idea 2
+  - Supporting detail
+  - Supporting detail
+
+### Branch 2: [Subtopic]
+- Key idea 1
+- Key idea 2
+
+(Continue with all major branches)
+
+## 📝 Relationships
+- [Concept A] → relates to → [Concept B] because...
+- [Concept C] → leads to → [Concept D] because...`,
+
+    'Timeline': `
+# Timeline: [Title]
+
+## 📅 Chronological Events
+
+| Time/Date | Event | Significance |
+|-----------|-------|--------------|
+| [time] | [event] | [why it matters] |
+
+## Detailed Timeline
+
+### ⏱️ [Time 1]: [Event]
+**What happened:** [Description]
+**Why it matters:** [Significance]
+
+(Continue for each major event)`,
+
+    'Venn Diagram': `
+# Venn Diagram: Comparing [Topic A] and [Topic B]
+
+## 🔵 [Topic A] Only
+- Unique characteristic 1
+- Unique characteristic 2
+- Unique characteristic 3
+
+## 🟡 Both [Topic A] AND [Topic B]
+- Shared characteristic 1
+- Shared characteristic 2
+- Shared characteristic 3
+
+## 🔴 [Topic B] Only
+- Unique characteristic 1
+- Unique characteristic 2
+- Unique characteristic 3`,
+
+    'Cause and Effect': `
+# Cause and Effect: [Title]
+
+## 🔄 Cause-Effect Relationships
+
+### Cause 1: [What happened]
+**Effects:**
+- → Effect 1
+- → Effect 2
+- → Effect 3
+
+### Cause 2: [What happened]
+**Effects:**
+- → Effect 1
+- → Effect 2
+
+## 📊 Chain Reactions
+[Event A] → leads to → [Event B] → leads to → [Event C]`,
+
+    'KWL Chart': `
+# KWL Chart: [Title]
+
+## 🤔 K - What I KNOW
+(Prior knowledge about the topic)
+- [Known fact 1]
+- [Known fact 2]
+- [Known fact 3]
+
+## ❓ W - What I WANT to Know
+(Questions to explore)
+- [Question 1]
+- [Question 2]
+- [Question 3]
+
+## 📚 L - What I LEARNED
+(Key takeaways from the video)
+- [Learned fact 1]
+- [Learned fact 2]
+- [Learned fact 3]`,
+
+    'Mind Map': `
+# Mind Map: [Title]
+
+## 🧠 Central Topic
+**[Main Subject]**
+
+---
+
+## Branch 1: [Major Theme]
+- Sub-idea 1.1
+  - Detail
+  - Detail
+- Sub-idea 1.2
+- Sub-idea 1.3
+
+## Branch 2: [Major Theme]
+- Sub-idea 2.1
+- Sub-idea 2.2
+  - Detail
+  - Detail
+
+(Continue for all major branches)`
+  };
+
+  return instructions[type] || instructions['Concept Map'];
 }

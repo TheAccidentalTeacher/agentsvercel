@@ -24,90 +24,99 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { videoData, transcript, gradeLevel } = req.body;
+    // Accept both old and new request formats
+    const { videoId, videoTitle, videoData, transcript, options = {} } = req.body;
 
-    if (!transcript || !videoData) {
+    if (!transcript || (!videoId && !videoData)) {
       return res.status(400).json({ 
-        error: 'Missing required fields: videoData and transcript' 
+        error: 'Missing required fields: transcript and (videoId or videoData)' 
       });
     }
+
+    const title = videoTitle || videoData?.title || 'Video';
+    const id = videoId || videoData?.videoId || 'unknown';
+    const gradeLevel = options.gradeLevel || req.body.gradeLevel || 'middle school';
+    const numTerms = options.numTerms || 15;
+
+    console.log('📚 Generating vocabulary for video:', id);
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY
     });
 
-    const grade = gradeLevel || 'middle school';
-    const videoTitle = videoData.title || 'this video';
+    const userPrompt = `Create a comprehensive vocabulary list based on this video content.
 
-    const prompt = `You are an expert vocabulary instructor helping students build academic vocabulary from educational content.
+**VIDEO:** ${title}
+**GRADE LEVEL:** ${gradeLevel}
 
-**VIDEO INFORMATION:**
-Title: ${videoTitle}
-Duration: ${videoData.duration || 'Unknown'}
-
-**TRANSCRIPT:**
+**CONTENT:**
 ${transcript}
 
-**TASK:**
-Generate a comprehensive vocabulary list of 15-20 key terms from this video. Focus on:
-1. Academic vocabulary (tier 2 & 3 words)
-2. Domain-specific terminology
-3. Words essential for understanding the content
-4. Terms students might not know at ${grade} level
+Generate ${numTerms} key vocabulary terms from this video. Focus on:
+- Academic vocabulary (tier 2 & 3 words)
+- Domain-specific terminology
+- Words essential for understanding the content
+- Terms students might not know at ${gradeLevel} level
 
-**FOR EACH TERM PROVIDE:**
-1. **Term**: The vocabulary word
-2. **Part of Speech**: (noun, verb, adjective, etc.)
-3. **Definition**: Clear, grade-appropriate definition (${grade} level)
-4. **Context from Video**: How the term is used in this specific video
-5. **Example Sentence**: Original example showing proper usage
-6. **Word Forms**: Related forms (e.g., analyze → analysis, analytical, analyzer)
-7. **Synonyms**: 2-3 similar words
-8. **Memory Tip**: Mnemonic or connection to help remember
+Format your response as clean markdown:
 
-**RETURN AS JSON:**
-{
-  "vocabulary": [
-    {
-      "term": "string",
-      "partOfSpeech": "string",
-      "definition": "string",
-      "contextFromVideo": "string",
-      "exampleSentence": "string",
-      "wordForms": ["string"],
-      "synonyms": ["string"],
-      "memoryTip": "string"
-    }
-  ],
-  "gradeLevel": "${grade}",
-  "totalTerms": 15
-}`;
+# Vocabulary List: ${title}
+
+**Grade Level:** ${gradeLevel}
+
+---
+
+## 📖 Key Terms
+
+### 1. **[Term]** *(part of speech)*
+**Definition:** [Clear, grade-appropriate definition]
+
+**Context from Video:** "[How this term was used in the video]"
+
+**Example Sentence:** [Original example showing proper usage]
+
+**Related Forms:** [word forms like analyze → analysis, analytical]
+
+**Synonyms:** [2-3 similar words]
+
+💡 **Memory Tip:** [Mnemonic or connection to help remember]
+
+---
+
+(Repeat for all ${numTerms} terms with the same format)
+
+---
+
+## 📝 Practice Activities
+
+### Fill in the Blank
+Use the vocabulary words to complete these sentences:
+
+1. _______________: [sentence with blank]
+2. _______________: [sentence with blank]
+3. _______________: [sentence with blank]
+
+### Matching
+Match each term to its definition.
+
+---
+*Vocabulary extracted from video content*`;
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4000,
       temperature: 0.7,
-      messages: [{ role: 'user', content: prompt }]
+      messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const responseText = message.content[0].text;
+    const markdown = message.content[0].text;
+    console.log('✅ Vocabulary generated successfully');
 
-    let vocabularyData;
-    try {
-      vocabularyData = JSON.parse(responseText);
-    } catch (e) {
-      const jsonMatch = responseText.match(/```json\n([\s\S]+?)\n```/) || 
-                       responseText.match(/```\n([\s\S]+?)\n```/);
-      if (jsonMatch) {
-        vocabularyData = JSON.parse(jsonMatch[1]);
-      } else {
-        throw new Error('Failed to parse JSON from response');
-      }
-    }
-
-    console.log('✅ Vocabulary generated:', vocabularyData.totalTerms, 'terms');
-
-    return res.status(200).json(vocabularyData);
+    return res.status(200).json({
+      markdown: markdown,
+      videoId: id,
+      videoTitle: title
+    });
 
   } catch (error) {
     console.error('❌ Error generating vocabulary:', error);

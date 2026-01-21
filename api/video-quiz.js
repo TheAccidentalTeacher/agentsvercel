@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { videoId, videoTitle, transcript, prompt, options } = req.body;
+    const { videoId, videoTitle, transcript, options = {} } = req.body;
 
     if (!videoId || !transcript) {
       return res.status(400).json({ 
@@ -38,43 +38,80 @@ export default async function handler(req, res) {
       apiKey: process.env.ANTHROPIC_API_KEY
     });
 
+    const numMC = options.numMultipleChoice || 5;
+    const numSA = options.numShortAnswer || 3;
+    const numTF = options.numTrueFalse || 5;
+    const numFIB = options.numFillInBlank || 5;
+
+    const userPrompt = `Create a comprehensive quiz based on this video content.
+
+**VIDEO:** ${videoTitle}
+
+**CONTENT:**
+${transcript}
+
+Create a quiz with:
+- ${numMC} Multiple Choice questions (4 options each, mark correct answer)
+- ${numTF} True/False questions
+- ${numFIB} Fill-in-the-Blank questions (use _____ for blanks)
+- ${numSA} Short Answer questions
+
+Format your response as clean markdown:
+
+# Quiz: ${videoTitle}
+
+## Multiple Choice
+
+**1. [Question text]**
+- A) [Option]
+- B) [Option]
+- C) [Option]
+- D) [Option]
+
+*Correct Answer: [Letter]*
+
+(Repeat for all multiple choice)
+
+## True or False
+
+**1. [Statement]**
+*Answer: True/False*
+
+(Repeat for all T/F)
+
+## Fill in the Blank
+
+**1. [Sentence with _____ for the blank]**
+*Answer: [correct word/phrase]*
+
+(Repeat for all fill-in-blank)
+
+## Short Answer
+
+**1. [Question requiring a brief explanation]**
+*Sample Answer: [2-3 sentence answer]*
+
+(Repeat for all short answer)
+
+---
+## Answer Key
+(List all answers in order for easy grading)`;
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4000,
       temperature: 0.7,
-      system: `You are an expert educator specializing in creating comprehensive, educationally sound assessments. You create quizzes that:
-- Test understanding at multiple cognitive levels (Bloom's Taxonomy)
-- Include clear, unambiguous questions
-- Provide detailed explanations for correct answers
-- Address common misconceptions
-- Reference video content with timestamps
-- Are appropriate for the target grade level
-- Follow best practices in assessment design
-
-Return your response ONLY as valid JSON matching the requested structure. Do not include markdown formatting or code blocks.`,
-      messages: [{ role: 'user', content: prompt }]
+      messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const responseText = message.content[0].text;
-    console.log('📝 Claude response received, parsing...');
-
-    // Parse JSON response
-    let quizData;
-    try {
-      quizData = JSON.parse(responseText);
-    } catch (e) {
-      const jsonMatch = responseText.match(/```json\n([\s\S]+?)\n```/) || 
-                       responseText.match(/```\n([\s\S]+?)\n```/);
-      if (jsonMatch) {
-        quizData = JSON.parse(jsonMatch[1]);
-      } else {
-        throw new Error('Failed to parse JSON from response');
-      }
-    }
-
+    const markdown = message.content[0].text;
     console.log('✅ Quiz generated successfully');
 
-    return res.status(200).json(quizData);
+    return res.status(200).json({
+      markdown: markdown,
+      videoId: videoId,
+      videoTitle: videoTitle
+    });
 
   } catch (error) {
     console.error('❌ Error generating quiz:', error);
