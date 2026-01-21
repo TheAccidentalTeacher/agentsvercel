@@ -1229,22 +1229,48 @@
         
         // Generate Discussion Questions from Video
         window.generateDiscussionQuestionsFromVideo = async function() {
-            if (!window.videoTools) {
-                alert('Please load a video and transcript first!');
+            const videoUI = window.currentVideoUI;
+            if (!videoUI || !videoUI.currentVideo) {
+                alert('Please load a video first!');
                 return;
             }
             
             console.log('💬 Generating discussion questions...');
-            showToolLoading('Generating Discussion Questions', 'This may take 30-60 seconds...');
+            showToolLoading('Generating Discussion Questions', 'Creating thought-provoking questions...');
             
             try {
-                const result = await window.videoTools.generateDiscussionQuestions({
-                    numPerLevel: 3,
-                    includeSocratic: true,
-                    includeDebate: true
+                let summary = videoUI.currentSummary;
+                if (!summary) {
+                    const summaryResponse = await fetch('/api/video-simple-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author,
+                            transcript: videoUI.currentTranscript
+                        })
+                    });
+                    if (!summaryResponse.ok) throw new Error('Failed to generate summary');
+                    const summaryData = await summaryResponse.json();
+                    summary = summaryData.summary;
+                    videoUI.currentSummary = summary;
+                }
+                
+                const response = await fetch('/api/video-discussion-questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoId: videoUI.currentVideo.videoId,
+                        videoTitle: videoUI.currentVideo.title,
+                        transcript: summary,
+                        options: { numPerLevel: 3, includeSocratic: true, includeDebate: true }
+                    })
                 });
                 
-                showToolOutput('Discussion Questions', result.markdown, result);
+                if (!response.ok) throw new Error('Discussion questions generation failed');
+                const result = await response.json();
+                showToolOutput('Discussion Questions', result.markdown || JSON.stringify(result, null, 2), result);
                 console.log('✅ Discussion questions generated successfully');
             } catch (error) {
                 console.error('❌ Discussion questions generation failed:', error);
@@ -1300,32 +1326,52 @@
         
         // Generate Vocabulary Builder from Video
         window.generateVocabularyFromVideo = async function() {
-            if (!window.videoTools) {
-                alert('Please load a video and transcript first!');
+            const videoUI = window.currentVideoUI;
+            if (!videoUI || !videoUI.currentVideo) {
+                alert('Please load a video first!');
                 return;
             }
             
-            // Prompt user for grade level
-            const gradeLevels = {
-                '1': 'elementary school',
-                '2': 'middle school',
-                '3': 'high school',
-                '4': 'college'
-            };
-            
+            const gradeLevels = { '1': 'elementary school', '2': 'middle school', '3': 'high school', '4': 'college' };
             const gradeChoice = prompt('Select Grade Level:\n1. Elementary School (K-5)\n2. Middle School (6-8)\n3. High School (9-12)\n4. College\n\nEnter number (1-4):', '2');
             const gradeLevel = gradeLevels[gradeChoice] || 'middle school';
             
             console.log(`📚 Generating vocabulary list for ${gradeLevel}...`);
-            showToolLoading('Generating Vocabulary List', 'Extracting key terms and definitions...');
+            showToolLoading('Generating Vocabulary List', 'Extracting key terms...');
             
             try {
-                const result = await window.videoTools.generateVocabulary({
-                    gradeLevel: gradeLevel,
-                    numTerms: 15
+                let summary = videoUI.currentSummary;
+                if (!summary) {
+                    const summaryResponse = await fetch('/api/video-simple-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author,
+                            transcript: videoUI.currentTranscript
+                        })
+                    });
+                    if (!summaryResponse.ok) throw new Error('Failed to generate summary');
+                    const summaryData = await summaryResponse.json();
+                    summary = summaryData.summary;
+                    videoUI.currentSummary = summary;
+                }
+                
+                const response = await fetch('/api/video-vocabulary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoId: videoUI.currentVideo.videoId,
+                        videoTitle: videoUI.currentVideo.title,
+                        transcript: summary,
+                        options: { gradeLevel: gradeLevel, numTerms: 15 }
+                    })
                 });
                 
-                showToolOutput('Vocabulary List', result.markdown, result);
+                if (!response.ok) throw new Error('Vocabulary generation failed');
+                const result = await response.json();
+                showToolOutput('Vocabulary List', result.markdown || JSON.stringify(result, null, 2), result);
                 console.log('✅ Vocabulary list generated successfully');
             } catch (error) {
                 console.error('❌ Vocabulary generation failed:', error);
@@ -1336,18 +1382,13 @@
         
         // Generate Guided Notes from Video
         window.generateGuidedNotesFromVideo = async function() {
-            if (!window.videoTools) {
-                alert('Please load a video and transcript first!');
+            const videoUI = window.currentVideoUI;
+            if (!videoUI || !videoUI.currentVideo) {
+                alert('Please load a video first!');
                 return;
             }
             
-            // Prompt user for note style
-            const noteStyles = {
-                '1': 'cornell',
-                '2': 'outline',
-                '3': 'fillinblank',
-                '4': 'guided'
-            };
+            const noteStyles = { '1': 'cornell', '2': 'outline', '3': 'fillinblank', '4': 'guided' };
             
             const styleChoice = prompt('Select Note Style:\n1. Cornell Notes (questions + notes + summary)\n2. Outline (hierarchical structure)\n3. Fill-in-the-Blank (worksheets)\n4. Guided Questions (content + questions)\n\nEnter number (1-4):', '1');
             const noteStyle = noteStyles[styleChoice] || 'cornell';
@@ -1374,12 +1415,38 @@
             showToolLoading(`Generating ${styleNames[noteStyle]}`, 'Creating structured note-taking template...');
             
             try {
-                const result = await window.videoTools.generateGuidedNotes({
-                    noteStyle: noteStyle,
-                    gradeLevel: gradeLevel
+                let summary = videoUI.currentSummary;
+                if (!summary) {
+                    const summaryResponse = await fetch('/api/video-simple-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId: videoUI.currentVideo.videoId,
+                            title: videoUI.currentVideo.title,
+                            author: videoUI.currentVideo.author,
+                            transcript: videoUI.currentTranscript
+                        })
+                    });
+                    if (!summaryResponse.ok) throw new Error('Failed to generate summary');
+                    const summaryData = await summaryResponse.json();
+                    summary = summaryData.summary;
+                    videoUI.currentSummary = summary;
+                }
+                
+                const response = await fetch('/api/video-guided-notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoId: videoUI.currentVideo.videoId,
+                        videoTitle: videoUI.currentVideo.title,
+                        transcript: summary,
+                        options: { noteStyle: noteStyle, gradeLevel: gradeLevel }
+                    })
                 });
                 
-                showToolOutput(styleNames[noteStyle], result.markdown, result);
+                if (!response.ok) throw new Error('Guided notes generation failed');
+                const result = await response.json();
+                showToolOutput(styleNames[noteStyle], result.markdown || JSON.stringify(result, null, 2), result);
                 console.log('✅ Guided notes generated successfully');
             } catch (error) {
                 console.error('❌ Guided notes generation failed:', error);
