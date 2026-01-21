@@ -41,20 +41,13 @@ export default async function handler(req, res) {
     const grade = gradeLevel || 'middle school';
     const videoTitle = videoData.title || 'Video';
 
-    // Truncate transcript to prevent timeout (max ~15000 chars)
-    const maxTranscriptLength = 15000;
-    let truncatedTranscript = transcript;
-    if (transcript.length > maxTranscriptLength) {
-      truncatedTranscript = transcript.substring(0, maxTranscriptLength) + '\n\n[Transcript truncated for processing...]';
-      console.log(`📝 Transcript truncated from ${transcript.length} to ${maxTranscriptLength} chars`);
-    }
-
     console.log(`📝 Generating ${style} notes for ${grade}...`);
+    console.log(`📝 Transcript length: ${transcript.length} chars`);
     if (includeReading) console.log('📖 Including reading passage');
     if (includeExitTicket) console.log('🎫 Including exit ticket');
 
-    // Build the combined prompt
-    let fullPrompt = getStylePrompt(style, videoTitle, grade, truncatedTranscript);
+    // Build the combined prompt - use full transcript
+    let fullPrompt = getStylePrompt(style, videoTitle, grade, transcript);
     
     // Add reading passage request if enabled
     if (includeReading) {
@@ -68,7 +61,7 @@ export default async function handler(req, res) {
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 4000, // Reduced to speed up generation
+      max_tokens: 4000,
       temperature: 0.7,
       messages: [{ role: 'user', content: fullPrompt }]
     });
