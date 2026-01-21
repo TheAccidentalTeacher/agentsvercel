@@ -457,6 +457,9 @@ class VideoUI {
         generateBtn.disabled = false;
         generateBtn.textContent = '🤖 Generate AI Summary (No Captions)';
       }
+      
+      // ✅ AUTO-SWITCH to Summary tab so user sees the button
+      this.handleTabSwitch('summary');
     }
   }
 
@@ -638,8 +641,11 @@ class VideoUI {
   }
 
   async handleModalGenerateSummary() {
-    if (!this.currentTranscript) {
-      alert('Please load a transcript first');
+    // ✅ ALLOW: Works with OR without transcript
+    // If no transcript, Gemini AI will watch the video directly
+    
+    if (!this.currentVideo) {
+      alert('Please load a video first');
       return;
     }
 
@@ -648,20 +654,26 @@ class VideoUI {
     const analysisContainer = document.getElementById('video-modal-analysis');
 
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '<span class="spinner"></span> Analyzing (30-60 sec)...';
+    
+    // Show appropriate loading message
+    if (this.currentTranscript) {
+      generateBtn.innerHTML = '<span class="spinner"></span> Analyzing transcript...';
+    } else {
+      generateBtn.innerHTML = '<span class="spinner"></span> AI watching video (60+ sec)...';
+    }
 
     summaryContainer.innerHTML = '<div class="loading-indicator"><span class="spinner"></span> Generating AI summary...</div>';
     analysisContainer.innerHTML = '<div class="loading-indicator"><span class="spinner"></span> Multi-agent analysis in progress...</div>';
 
     try {
-      // Call the analyzer
+      // Call the analyzer (will use transcript if available, otherwise Gemini watches video)
       const analysis = await this.analyzer.analyzeVideo(
         {
           videoId: this.currentVideo.videoId,
           title: this.currentVideo.title,
           author: this.currentVideo.author,
           duration: this.currentVideo.duration,
-          transcript: this.currentTranscript
+          transcript: this.currentTranscript  // Can be null - analyzer will handle it
         },
         ['master-teacher', 'classical-educator', 'strategist', 'theologian']
       );
