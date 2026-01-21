@@ -136,7 +136,13 @@ ${styleInstructions}`;
 
     console.log('✅ Guided notes generated');
 
-    return res.status(200).json(notesData);
+    // Format as markdown
+    const markdown = formatGuidedNotesAsMarkdown(notesData, videoTitle);
+
+    return res.status(200).json({
+      ...notesData,
+      markdown: markdown
+    });
 
   } catch (error) {
     console.error('❌ Error generating guided notes:', error);
@@ -145,4 +151,50 @@ ${styleInstructions}`;
       message: error.message
     });
   }
+}
+
+function formatGuidedNotesAsMarkdown(notes, videoTitle) {
+  let md = `# ${videoTitle}\n\n`;
+  
+  if (notes.summary) {
+    md += `## Summary\n${notes.summary}\n\n---\n\n`;
+  }
+  
+  if (notes.sections && Array.isArray(notes.sections)) {
+    notes.sections.forEach((section, index) => {
+      md += `## ${section.topic || `Section ${index + 1}`}\n\n`;
+      
+      if (section.timestamp) {
+        md += `**⏱️ Timestamp:** ${section.timestamp}\n\n`;
+      }
+      
+      if (section.questions && section.questions.length > 0) {
+        md += `### 🤔 Questions to Consider\n`;
+        section.questions.forEach(q => {
+          md += `- ${q}\n`;
+        });
+        md += `\n`;
+      }
+      
+      if (section.notes && section.notes.length > 0) {
+        md += `### 📝 Notes\n`;
+        section.notes.forEach(note => {
+          md += `- ${note}\n`;
+        });
+        md += `\n`;
+      }
+      
+      if (section.keyTerms && section.keyTerms.length > 0) {
+        md += `### 🔑 Key Terms\n`;
+        section.keyTerms.forEach(term => {
+          md += `- **${term}**\n`;
+        });
+        md += `\n`;
+      }
+      
+      md += `---\n\n`;
+    });
+  }
+  
+  return md;
 }
