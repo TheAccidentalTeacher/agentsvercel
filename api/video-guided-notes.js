@@ -219,44 +219,52 @@ function getStylePrompt(style, videoTitle, grade, transcript) {
 **CONTENT:**
 ${transcript}
 
-Format as clean markdown for Cornell Notes:
+**CRITICAL FORMAT INSTRUCTIONS:**
+You MUST use actual markdown tables with | pipes | for the Questions and Notes columns.
+DO NOT use separate bullet lists for questions and notes.
+Each section MUST be a proper two-column table.
+
+Format EXACTLY like this (this is the required structure):
 
 # Cornell Notes: ${videoTitle}
-
-| Questions | Notes |
-|-----------|-------|
-| *Write questions here* | *Write notes here* |
 
 ---
 
 ## Section 1: [Topic Name]
 
-### ❓ Questions (Left Column)
-- [Key question 1]
-- [Key question 2]
-- [Key question 3]
+| Questions | Notes |
+|-----------|-------|
+| What is [concept]? | [Main point about the concept] |
+| Why does [thing] happen? | [Explanation with details] |
+| How does [process] work? | [Step-by-step or key facts] |
 
-### 📝 Notes (Right Column)
-- [Main point 1]
-- [Main point 2]
-- [Supporting detail]
-- [Example or definition]
-
-### 🔑 Key Terms
-- **[Term 1]** - definition
-- **[Term 2]** - definition
+**Key Terms:** [Term 1] - definition; [Term 2] - definition
 
 ---
 
-(Repeat for each major section of the video - aim for 5-8 sections)
+## Section 2: [Next Topic Name]
+
+| Questions | Notes |
+|-----------|-------|
+| [Question about this topic]? | [Answer/notes] |
+| [Another question]? | [More detailed notes here] |
+| [Third question]? | [Supporting information] |
+
+**Key Terms:** [Term] - definition
+
+---
+
+(Continue this EXACT pattern for 5-8 sections covering the whole video)
 
 ---
 
 ## 📋 Summary
-[3-5 sentences summarizing the main ideas from all sections. This should synthesize the key takeaways.]
+
+[3-5 sentences synthesizing the main ideas from all sections above.]
 
 ---
-*Cornell Notes help you organize information for better retention and review.*`,
+
+REMEMBER: Every section MUST have a proper | Question | Notes | table. NO bullet lists for Q&A.`,
 
     outline: `Create a Hierarchical Outline based on this video content.
 
