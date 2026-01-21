@@ -641,8 +641,7 @@ class VideoUI {
   }
 
   async handleModalGenerateSummary() {
-    // ✅ ALLOW: Works with OR without transcript
-    // If no transcript, Gemini AI will watch the video directly
+    // ✅ SIMPLE: Works like Monica.ai - one button, simple output
     
     if (!this.currentVideo) {
       alert('Please load a video first');
@@ -651,32 +650,52 @@ class VideoUI {
 
     const generateBtn = document.getElementById('video-modal-generate-summary-btn');
     const summaryContainer = document.getElementById('video-modal-summary');
-    const analysisContainer = document.getElementById('video-modal-analysis');
 
     generateBtn.disabled = true;
+    generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
     
-    // Show appropriate loading message
-    if (this.currentTranscript) {
-      generateBtn.innerHTML = '<span class="spinner"></span> Analyzing transcript...';
-    } else {
-      generateBtn.innerHTML = '<span class="spinner"></span> AI watching video (60+ sec)...';
-    }
-
-    summaryContainer.innerHTML = '<div class="loading-indicator"><span class="spinner"></span> Generating AI summary...</div>';
-    analysisContainer.innerHTML = '<div class="loading-indicator"><span class="spinner"></span> Multi-agent analysis in progress...</div>';
+    summaryContainer.innerHTML = '<div class="loading-indicator"><span class="spinner"></span> AI is analyzing the video...</div>';
 
     try {
-      // Call the analyzer (will use transcript if available, otherwise Gemini watches video)
-      const analysis = await this.analyzer.analyzeVideo(
-        {
+      // Call SIMPLE summary endpoint (like Monica.ai)
+      const response = await fetch('/api/video-simple-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           videoId: this.currentVideo.videoId,
           title: this.currentVideo.title,
           author: this.currentVideo.author,
-          duration: this.currentVideo.duration,
-          transcript: this.currentTranscript  // Can be null - analyzer will handle it
-        },
-        ['master-teacher', 'classical-educator', 'strategist', 'theologian']
-      );
+          transcript: this.currentTranscript  // Can be null
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Summary failed');
+      }
+
+      const data = await response.json();
+      
+      // Display simple summary (Monica.ai style)
+      summaryContainer.innerHTML = `
+        <div style="padding: 20px; font-size: 14px; line-height: 1.8; white-space: pre-wrap;">${data.summary}</div>
+      `;
+
+      generateBtn.textContent = '✓ Summary Complete';
+      generateBtn.disabled = true;
+      
+      // Track usage
+      if (this.currentVideo?.videoId) {
+        await videoHistory.markToolUsed(this.currentVideo.videoId, 'summary');
+      }
+
+    } catch (error) {
+      summaryContainer.innerHTML = `<div class="error-message">Failed to generate summary: ${error.message}</div>`;
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '<span class="icon">✨</span> Generate Summary';
+      console.error('Summary generation error:', error);
+    }
+  }
 
       this.currentAnalysis = analysis;
 
