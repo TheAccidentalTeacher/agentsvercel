@@ -6,8 +6,8 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 
-// Gemini REST API - same as gemini-transcript.js
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// Gemini REST API - use faster model for video processing
+const GEMINI_MODEL = 'gemini-1.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export const config = {
@@ -137,29 +137,19 @@ async function generateGeminiVideoSummary(videoId, title, author) {
   const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
   console.log(`🎥 Gemini watching video: ${videoUrl}`);
 
-  const prompt = `Watch this YouTube video and create a comprehensive educational summary.
+  const prompt = `Watch this YouTube video and summarize it.
 
 VIDEO: "${title}" by ${author}
 
-Create a detailed summary in this EXACT format:
+Provide:
 
 ## Summary
-Write 3-4 detailed paragraphs (400-500 words total) covering:
-- Main topic and purpose of the video
-- Key themes, concepts, and important information presented
-- Major insights, findings, examples, or demonstrations shown
-- Overall structure and flow of the content
-- Why this content is valuable or interesting
-
-Be SPECIFIC about what is ACTUALLY shown and discussed in the video.
+2-3 paragraphs covering the main topic, key points, and important takeaways.
 
 ## Highlights
-Create 8-12 key moments with REAL timestamps from the video:
-- **[MM:SS]** [Detailed 2-3 sentence description of what happens at this moment]
-- **[MM:SS]** [Detailed 2-3 sentence description]
-(Continue for all key moments - use REAL timestamps from the video)
-
-Be comprehensive and detailed. This summary will be used by teachers for educational purposes.
+List 6-8 key moments with timestamps:
+- **[MM:SS]** Brief description of what happens
+(Use real timestamps from the video)
 
 VIDEO URL: ${videoUrl}`;
 
@@ -172,7 +162,7 @@ VIDEO URL: ${videoUrl}`;
     }],
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 8000,
+      maxOutputTokens: 4000,
       topP: 0.95
     },
     safetySettings: [
