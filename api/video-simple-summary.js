@@ -36,22 +36,17 @@ export default async function handler(req, res) {
       apiKey: process.env.ANTHROPIC_API_KEY
     });
 
-    // Build prompt based on what we have
-    let contentToAnalyze = '';
-    
-    if (transcript && transcript.fullText) {
-      // Use transcript if available
-      contentToAnalyze = transcript.fullText.substring(0, 12000);
+    const hasTranscript = transcript && transcript.fullText;
+    let systemPrompt, userPrompt;
+
+    if (hasTranscript) {
+      // Use transcript for accurate summary
+      const contentToAnalyze = transcript.fullText.substring(0, 12000);
       console.log(`✓ Using transcript (${transcript.fullText.length} chars)`);
-    } else {
-      // No transcript - just analyze based on title/metadata
-      contentToAnalyze = `Video Title: "${title}"\nChannel: ${author}\nVideo URL: https://www.youtube.com/watch?v=${videoId}`;
-      console.log(`⚠️ No transcript - analyzing from metadata only`);
-    }
 
-    const systemPrompt = `You are an expert at analyzing video content. Create concise, actionable summaries with clear timestamps.`;
+      systemPrompt = `You are an expert at analyzing video content. Create concise, actionable summaries with clear timestamps.`;
 
-    const userPrompt = `Analyze this YouTube video and provide:
+      userPrompt = `Analyze this YouTube video and provide:
 
 **Video**: "${title}" by ${author}
 **Content**:
@@ -78,7 +73,55 @@ Make it substantive and informative.]
 - **[24:15]** [Thorough explanation of this segment - 2-3 sentences]
 (Include 8-12 key moments with substantial descriptions for each)
 
-Make this comprehensive, detailed, and highly informative. Each highlight should provide real substance about what's covered at that timestamp.`;
+Make this comprehensive, detailed, and highly informative.`;
+
+    } else {
+      // No transcript - generate comprehensive topic-based content using Claude's knowledge
+      console.log(`⚠️ No transcript - generating topic-based summary for: "${title}"`);
+
+      systemPrompt = `You are an expert educator with comprehensive knowledge across all subjects including history, science, literature, technology, and more. When asked about a video topic, provide substantive educational content based on your knowledge.`;
+
+      userPrompt = `A teacher needs educational content about the topic: "${title}" (YouTube video by ${author}).
+
+Since the video's captions are not available, please provide a COMPREHENSIVE educational guide about this topic based on your knowledge.
+
+Create detailed, substantive content in this format:
+
+## Summary
+Write 3-4 paragraphs (400-500 words) covering:
+- What this topic is about and why it matters
+- Major themes, events, concepts, or key ideas
+- Historical context, scientific principles, or foundational knowledge as relevant
+- Important figures, dates, discoveries, or developments
+- How this connects to broader themes or modern relevance
+- Why this is valuable learning material
+
+## Key Topics & Concepts
+- **[Topic 1]**: [2-3 sentence detailed explanation]
+- **[Topic 2]**: [2-3 sentence detailed explanation]
+- **[Topic 3]**: [2-3 sentence detailed explanation]
+- **[Topic 4]**: [2-3 sentence detailed explanation]
+- **[Topic 5]**: [2-3 sentence detailed explanation]
+- **[Topic 6]**: [2-3 sentence detailed explanation]
+- **[Topic 7]**: [2-3 sentence detailed explanation]
+- **[Topic 8]**: [2-3 sentence detailed explanation]
+(Include 8-10 major topics with substantial explanations)
+
+## Key Vocabulary
+[List 10-15 important terms with brief definitions]
+
+## Discussion Questions
+1. [Thought-provoking question]
+2. [Critical thinking question]
+3. [Connection to modern day]
+4. [Analysis question]
+5. [Synthesis question]
+
+---
+*Note: This educational content is based on the video title since captions were not available. The actual video may cover additional aspects.*
+
+Be thorough and genuinely educational - this will be used by teachers.`;
+    }
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',

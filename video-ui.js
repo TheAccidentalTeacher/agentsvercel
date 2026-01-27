@@ -674,8 +674,15 @@ class VideoUI {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Summary failed');
+        // Handle non-JSON error responses (like 504 timeout)
+        let errorMessage = 'Summary failed';
+        try {
+          const error = await response.json();
+          errorMessage = error.message || errorMessage;
+        } catch {
+          errorMessage = response.status === 504 ? 'Request timed out - try again' : `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
