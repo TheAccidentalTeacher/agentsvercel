@@ -1,10 +1,14 @@
 /**
  * Vercel API Route: Simple Video Summary (Monica.ai style)
- * One button, simple output: summary + timestamps
- * Uses Claude for transcript-based summaries, Gemini to WATCH video when no transcript
+ * Uses Claude for transcript-based summaries
+ * Uses Gemini REST API to WATCH video when no transcript (same as gemini-transcript.js)
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+
+// Gemini REST API - same as gemini-transcript.js
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export const config = {
   maxDuration: 60
@@ -120,21 +124,22 @@ Make this comprehensive, detailed, and highly informative.`;
 }
 
 /**
- * Use Gemini to WATCH the video directly and generate a summary
+ * Use Gemini REST API to WATCH the video directly and generate a summary
+ * Same approach as gemini-transcript.js
  */
 async function generateGeminiVideoSummary(videoId, title, author) {
-  const { GoogleGenerativeAI } = await import('@google/generative-ai');
+  const googleKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  
-  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-  
-  console.log(`🎥 Gemini watching video: ${videoUrl}`);
-  
-  const prompt = `Watch this YouTube video and create a comprehensive summary.
+  if (!googleKey) {
+    throw new Error('Gemini API key not configured');
+  }
 
-Video: "${title}" by ${author}
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  console.log(`🎥 Gemini watching video: ${videoUrl}`);
+
+  const prompt = `Watch this YouTube video and create a comprehensive educational summary.
+
+VIDEO: "${title}" by ${author}
 
 Create a detailed summary in this EXACT format:
 
@@ -146,35 +151,75 @@ Write 3-4 detailed paragraphs (400-500 words total) covering:
 - Overall structure and flow of the content
 - Why this content is valuable or interesting
 
-Be specific about what is ACTUALLY shown and discussed in the video.
+Be SPECIFIC about what is ACTUALLY shown and discussed in the video.
 
 ## Highlights
 Create 8-12 key moments with REAL timestamps from the video:
 - **[MM:SS]** [Detailed 2-3 sentence description of what happens at this moment]
 - **[MM:SS]** [Detailed 2-3 sentence description]
-(Continue for all key moments)
+(Continue for all key moments - use REAL timestamps from the video)
 
-Be comprehensive and detailed. This summary will be used by teachers for educational purposes.`;
+Be comprehensive and detailed. This summary will be used by teachers for educational purposes.
 
+VIDEO URL: ${videoUrl}`;
+
+  const requestBody = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { file_data: { file_uri: videoUrl } }
+      ]
+    }],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 8000,
+      topP: 0.95
+    },
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+    ]
+  };
+
+  // Create AbortController for timeout (55 seconds to leave buffer)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 55000);
+
+  let response;
   try {
-    const result = await model.generateContent([
-      prompt,
-      {
-        fileData: {
-          fileUri: videoUrl,
-          mimeType: 'video/mp4'
-        }
-      }
-    ]);
-    
-    const response = result.response;
-    const summaryText = response.text();
-    
-    console.log(`✓ Gemini video summary generated (${summaryText.length} chars)`);
-    return summaryText;
-    
-  } catch (error) {
-    console.error('❌ Gemini video watch error:', error);
-    throw new Error(`Gemini could not watch video: ${error.message}`);
+    response = await fetch(`${GEMINI_API_URL}?key=${googleKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    if (fetchError.name === 'AbortError') {
+      throw new Error('Video analysis timed out - try a shorter video');
+    }
+    throw fetchError;
   }
+  clearTimeout(timeoutId);
+
+  console.log(`   Gemini response status: ${response.status}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Gemini API error:', errorText);
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+    throw new Error('Invalid response from Gemini API');
+  }
+
+  const summaryText = data.candidates[0].content.parts[0].text;
+  console.log(`✓ Gemini video summary generated (${summaryText.length} chars)`);
+  
+  return summaryText;
 }
