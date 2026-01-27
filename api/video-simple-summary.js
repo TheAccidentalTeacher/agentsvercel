@@ -1,14 +1,9 @@
 /**
  * Vercel API Route: Simple Video Summary (Monica.ai style)
- * Uses Claude for transcript-based summaries
- * Uses Gemini REST API to WATCH video when no transcript (same as gemini-transcript.js)
+ * One button, simple output: summary + timestamps
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-
-// Gemini REST API - use gemini-2.0-flash-exp for fastest video processing
-const GEMINI_MODEL = 'gemini-2.0-flash-exp';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export const config = {
   maxDuration: 60
@@ -37,30 +32,22 @@ export default async function handler(req, res) {
 
     console.log(`📺 Creating simple summary for: ${title || videoId}`);
 
-    const hasTranscript = transcript && transcript.fullText;
-
-    // If NO transcript, use Gemini to WATCH the video directly
-    if (!hasTranscript) {
-      console.log(`🎥 No transcript - using Gemini to watch video directly`);
-      const geminiSummary = await generateGeminiVideoSummary(videoId, title, author);
-      return res.status(200).json({
-        videoId,
-        title,
-        author,
-        summary: geminiSummary,
-        hasTranscript: false,
-        source: 'gemini-video-watch',
-        generatedAt: new Date().toISOString()
-      });
-    }
-
-    // Has transcript - use Claude for fast, accurate summary
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY
     });
 
-    const contentToAnalyze = transcript.fullText.substring(0, 12000);
-    console.log(`✓ Using transcript (${transcript.fullText.length} chars)`);
+    // Build prompt based on what we have
+    let contentToAnalyze = '';
+    
+    if (transcript && transcript.fullText) {
+      // Use transcript if available
+      contentToAnalyze = transcript.fullText.substring(0, 12000);
+      console.log(`✓ Using transcript (${transcript.fullText.length} chars)`);
+    } else {
+      // No transcript - just analyze based on title/metadata
+      contentToAnalyze = `Video Title: "${title}"\nChannel: ${author}\nVideo URL: https://www.youtube.com/watch?v=${videoId}`;
+      console.log(`⚠️ No transcript - analyzing from metadata only`);
+    }
 
     const systemPrompt = `You are an expert at analyzing video content. Create concise, actionable summaries with clear timestamps.`;
 
@@ -91,7 +78,7 @@ Make it substantive and informative.]
 - **[24:15]** [Thorough explanation of this segment - 2-3 sentences]
 (Include 8-12 key moments with substantial descriptions for each)
 
-Make this comprehensive, detailed, and highly informative.`;
+Make this comprehensive, detailed, and highly informative. Each highlight should provide real substance about what's covered at that timestamp.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
@@ -102,6 +89,7 @@ Make this comprehensive, detailed, and highly informative.`;
     });
 
     const summaryText = message.content[0].text;
+
     console.log(`✓ Summary generated (${summaryText.length} chars)`);
 
     return res.status(200).json({
@@ -109,8 +97,7 @@ Make this comprehensive, detailed, and highly informative.`;
       title,
       author,
       summary: summaryText,
-      hasTranscript: true,
-      source: 'claude-transcript',
+      hasTranscript: !!(transcript && transcript.fullText),
       generatedAt: new Date().toISOString()
     });
 
@@ -121,89 +108,4 @@ Make this comprehensive, detailed, and highly informative.`;
       message: error.message
     });
   }
-}
-
-/**
- * Use Gemini REST API to WATCH the video directly and generate a summary
- * Same approach as gemini-transcript.js
- */
-async function generateGeminiVideoSummary(videoId, title, author) {
-  const googleKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  
-  if (!googleKey) {
-    throw new Error('Gemini API key not configured');
-  }
-
-  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-  console.log(`🎥 Gemini watching video: ${videoUrl}`);
-
-  const prompt = `Summarize this YouTube video briefly.
-
-VIDEO: "${title}"
-
-## Summary
-One paragraph about what this video covers.
-
-## Key Points
-- 5-6 main points from the video with timestamps [MM:SS]`;
-
-  const requestBody = {
-    contents: [{
-      parts: [
-        { text: prompt },
-        { file_data: { file_uri: videoUrl } }
-      ]
-    }],
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 2000,
-      topP: 0.9
-    },
-    safetySettings: [
-      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-    ]
-  };
-
-  // Use full 59 seconds - Vercel gives us 60
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 59000);
-
-  let response;
-  try {
-    response = await fetch(`${GEMINI_API_URL}?key=${googleKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-  } catch (fetchError) {
-    clearTimeout(timeoutId);
-    if (fetchError.name === 'AbortError') {
-      throw new Error('Video analysis timed out - try a shorter video');
-    }
-    throw fetchError;
-  }
-  clearTimeout(timeoutId);
-
-  console.log(`   Gemini response status: ${response.status}`);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini API error:', errorText);
-    throw new Error(`Gemini API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-    throw new Error('Invalid response from Gemini API');
-  }
-
-  const summaryText = data.candidates[0].content.parts[0].text;
-  console.log(`✓ Gemini video summary generated (${summaryText.length} chars)`);
-  
-  return summaryText;
 }
