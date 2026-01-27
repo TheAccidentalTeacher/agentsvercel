@@ -1567,8 +1567,24 @@
             const gradeChoice = prompt('Select Grade Level:\n1. Elementary School (K-5)\n2. Middle School (6-8)\n3. High School (9-12)\n4. College\n\nEnter number (1-4):', '2');
             const gradeLevel = gradeLevels[gradeChoice] || 'middle school';
             
+            // Ask about additional materials (same as Guided Notes)
+            const includeReadingChoice = prompt('Include a 3-paragraph reading passage?\n(Written at accessible reading level for struggling readers)\n\n1. Yes\n2. No\n\nEnter 1 or 2:', '1');
+            const includeReading = includeReadingChoice === '1';
+            
+            const includeExitTicketChoice = prompt('Include 2 DOK-3 Exit Ticket questions?\n(Strategic thinking questions based on the content)\n\n1. Yes\n2. No\n\nEnter 1 or 2:', '1');
+            const includeExitTicket = includeExitTicketChoice === '1';
+            
+            let loadingMessage = 'Creating visual learning organizer...';
+            if (includeReading && includeExitTicket) {
+                loadingMessage = 'Creating organizer, reading passage, and exit ticket...';
+            } else if (includeReading) {
+                loadingMessage = 'Creating organizer and reading passage...';
+            } else if (includeExitTicket) {
+                loadingMessage = 'Creating organizer and exit ticket...';
+            }
+            
             console.log(`🗺️ Generating ${organizerType} for ${gradeLevel}...`);
-            showToolLoading(`Generating ${organizerType}`, 'Creating visual learning organizer...');
+            showToolLoading(`Generating ${organizerType}`, loadingMessage);
             
             try {
                 // Get or generate summary
@@ -1598,7 +1614,9 @@
                         videoTitle: videoUI.currentVideo.title,
                         transcript: summary,
                         organizerType: organizerType,
-                        gradeLevel: gradeLevel
+                        gradeLevel: gradeLevel,
+                        includeReading: includeReading,
+                        includeExitTicket: includeExitTicket
                     })
                 });
                 

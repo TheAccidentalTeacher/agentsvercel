@@ -1,6 +1,7 @@
 /**
  * Vercel API Route: Video Graphic Organizer
  * Generate visual graphic organizers from video transcripts
+ * Now includes optional reading passage and exit ticket (like Guided Notes)
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { videoId, videoTitle, videoData, transcript, organizerType, gradeLevel } = req.body;
+    const { videoId, videoTitle, videoData, transcript, organizerType, gradeLevel, includeReading, includeExitTicket } = req.body;
 
     const title = videoTitle || videoData?.title || 'Video';
     const id = videoId || videoData?.videoId || 'unknown';
@@ -32,6 +33,8 @@ export default async function handler(req, res) {
     const grade = gradeLevel || 'middle school';
 
     console.log('[Graphic Organizer] Request received:', { type, grade, title });
+    if (includeReading) console.log('📖 Including reading passage');
+    if (includeExitTicket) console.log('🎫 Including exit ticket');
 
     if (!transcript || transcript.length === 0) {
       return res.status(400).json({ error: 'Transcript is required' });
@@ -51,7 +54,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid transcript format' });
     }
 
-    const userPrompt = `Create a ${type} graphic organizer based on this video content.
+    // Build the combined prompt
+    let userPrompt = `Create a ${type} graphic organizer based on this video content.
 
 **VIDEO:** ${title}
 **GRADE LEVEL:** ${grade}
@@ -66,9 +70,19 @@ ${getOrganizerInstructions(type)}
 
 Format your response as clean, printable markdown that teachers can use directly.`;
 
+    // Add reading passage request if enabled
+    if (includeReading) {
+      userPrompt += getReadingPassagePrompt(title, grade);
+    }
+    
+    // Add exit ticket request if enabled
+    if (includeExitTicket) {
+      userPrompt += getExitTicketPrompt(title, grade);
+    }
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 4000,
+      max_tokens: 6000, // Increased for additional content
       temperature: 0.7,
       messages: [{ role: 'user', content: userPrompt }]
     });
@@ -80,7 +94,9 @@ Format your response as clean, printable markdown that teachers can use directly
       markdown: markdown,
       videoId: id,
       videoTitle: title,
-      organizerType: type
+      organizerType: type,
+      includesReading: includeReading,
+      includesExitTicket: includeExitTicket
     });
 
   } catch (error) {
@@ -90,6 +106,86 @@ Format your response as clean, printable markdown that teachers can use directly
       message: error.message
     });
   }
+}
+
+/**
+ * Reading Passage Prompt - 3 paragraphs at accessible reading level
+ */
+function getReadingPassagePrompt(videoTitle, grade) {
+  return `
+
+---
+
+## ADDITIONAL REQUEST: INFORMATIONAL READING PASSAGE
+
+After the graphic organizer above, create a **3-paragraph informational reading passage** based on the same video content.
+
+**Requirements:**
+- Write at an accessible reading level (approximately 5th-6th grade Lexile level)
+- Designed for struggling readers who need scaffolded text
+- **Paragraph 1:** Introduction - Hook the reader and introduce the main topic
+- **Paragraph 2:** Body - Explain the key concepts, events, or information
+- **Paragraph 3:** Conclusion - Summarize the main ideas and their significance
+
+**Formatting:**
+\`\`\`
+---
+
+# 📖 Reading Passage: ${videoTitle}
+
+[Paragraph 1 - Introduction]
+
+[Paragraph 2 - Body with key information]
+
+[Paragraph 3 - Conclusion and significance]
+
+---
+\`\`\`
+
+Make it engaging, clear, and accessible for ${grade} students who may struggle with grade-level text.`;
+}
+
+/**
+ * Exit Ticket Prompt - 2 DOK 3 questions
+ */
+function getExitTicketPrompt(videoTitle, grade) {
+  return `
+
+---
+
+## ADDITIONAL REQUEST: DOK 3 EXIT TICKET
+
+After everything above, create **2 DOK Level 3 (Strategic Thinking) exit ticket questions** based on the reading passage.
+
+**DOK Level 3 Requirements:**
+- Require reasoning, planning, or using evidence
+- Ask students to justify, compare, analyze, or evaluate
+- Cannot be answered with simple recall - require thinking
+
+**Format:**
+\`\`\`
+---
+
+# 🎫 Exit Ticket: ${videoTitle}
+
+## Question 1 (DOK 3 - Strategic Thinking)
+[Open-ended question requiring analysis or evaluation]
+
+**What to look for in student responses:**
+[Brief rubric guidance for teachers]
+
+---
+
+## Question 2 (DOK 3 - Strategic Thinking)  
+[Open-ended question requiring comparison, justification, or synthesis]
+
+**What to look for in student responses:**
+[Brief rubric guidance for teachers]
+
+---
+\`\`\`
+
+Make questions appropriate for ${grade} level while maintaining DOK 3 rigor.`;
 }
 
 function getOrganizerInstructions(type) {
