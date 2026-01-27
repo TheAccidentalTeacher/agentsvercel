@@ -1,6 +1,7 @@
 /**
  * Vercel API Route: Simple Video Summary (Monica.ai style)
  * One button, simple output: summary + timestamps
+ * Uses Claude for transcript-based summaries, Gemini to WATCH video when no transcript
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -32,21 +33,34 @@ export default async function handler(req, res) {
 
     console.log(`📺 Creating simple summary for: ${title || videoId}`);
 
+    const hasTranscript = transcript && transcript.fullText;
+
+    // If NO transcript, use Gemini to WATCH the video directly
+    if (!hasTranscript) {
+      console.log(`🎥 No transcript - using Gemini to watch video directly`);
+      const geminiSummary = await generateGeminiVideoSummary(videoId, title, author);
+      return res.status(200).json({
+        videoId,
+        title,
+        author,
+        summary: geminiSummary,
+        hasTranscript: false,
+        source: 'gemini-video-watch',
+        generatedAt: new Date().toISOString()
+      });
+    }
+
+    // Has transcript - use Claude for fast, accurate summary
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY
     });
 
-    const hasTranscript = transcript && transcript.fullText;
-    let systemPrompt, userPrompt;
+    const contentToAnalyze = transcript.fullText.substring(0, 12000);
+    console.log(`✓ Using transcript (${transcript.fullText.length} chars)`);
 
-    if (hasTranscript) {
-      // Use transcript for accurate summary
-      const contentToAnalyze = transcript.fullText.substring(0, 12000);
-      console.log(`✓ Using transcript (${transcript.fullText.length} chars)`);
+    const systemPrompt = `You are an expert at analyzing video content. Create concise, actionable summaries with clear timestamps.`;
 
-      systemPrompt = `You are an expert at analyzing video content. Create concise, actionable summaries with clear timestamps.`;
-
-      userPrompt = `Analyze this YouTube video and provide:
+    const userPrompt = `Analyze this YouTube video and provide:
 
 **Video**: "${title}" by ${author}
 **Content**:
@@ -75,54 +89,6 @@ Make it substantive and informative.]
 
 Make this comprehensive, detailed, and highly informative.`;
 
-    } else {
-      // No transcript - generate comprehensive topic-based content using Claude's knowledge
-      console.log(`⚠️ No transcript - generating topic-based summary for: "${title}"`);
-
-      systemPrompt = `You are an expert educator with comprehensive knowledge across all subjects including history, science, literature, technology, and more. When asked about a video topic, provide substantive educational content based on your knowledge.`;
-
-      userPrompt = `A teacher needs educational content about the topic: "${title}" (YouTube video by ${author}).
-
-Since the video's captions are not available, please provide a COMPREHENSIVE educational guide about this topic based on your knowledge.
-
-Create detailed, substantive content in this format:
-
-## Summary
-Write 3-4 paragraphs (400-500 words) covering:
-- What this topic is about and why it matters
-- Major themes, events, concepts, or key ideas
-- Historical context, scientific principles, or foundational knowledge as relevant
-- Important figures, dates, discoveries, or developments
-- How this connects to broader themes or modern relevance
-- Why this is valuable learning material
-
-## Key Topics & Concepts
-- **[Topic 1]**: [2-3 sentence detailed explanation]
-- **[Topic 2]**: [2-3 sentence detailed explanation]
-- **[Topic 3]**: [2-3 sentence detailed explanation]
-- **[Topic 4]**: [2-3 sentence detailed explanation]
-- **[Topic 5]**: [2-3 sentence detailed explanation]
-- **[Topic 6]**: [2-3 sentence detailed explanation]
-- **[Topic 7]**: [2-3 sentence detailed explanation]
-- **[Topic 8]**: [2-3 sentence detailed explanation]
-(Include 8-10 major topics with substantial explanations)
-
-## Key Vocabulary
-[List 10-15 important terms with brief definitions]
-
-## Discussion Questions
-1. [Thought-provoking question]
-2. [Critical thinking question]
-3. [Connection to modern day]
-4. [Analysis question]
-5. [Synthesis question]
-
----
-*Note: This educational content is based on the video title since captions were not available. The actual video may cover additional aspects.*
-
-Be thorough and genuinely educational - this will be used by teachers.`;
-    }
-
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 8000,
@@ -132,7 +98,6 @@ Be thorough and genuinely educational - this will be used by teachers.`;
     });
 
     const summaryText = message.content[0].text;
-
     console.log(`✓ Summary generated (${summaryText.length} chars)`);
 
     return res.status(200).json({
@@ -140,7 +105,8 @@ Be thorough and genuinely educational - this will be used by teachers.`;
       title,
       author,
       summary: summaryText,
-      hasTranscript: !!(transcript && transcript.fullText),
+      hasTranscript: true,
+      source: 'claude-transcript',
       generatedAt: new Date().toISOString()
     });
 
@@ -150,5 +116,65 @@ Be thorough and genuinely educational - this will be used by teachers.`;
       error: 'Summary generation failed',
       message: error.message
     });
+  }
+}
+
+/**
+ * Use Gemini to WATCH the video directly and generate a summary
+ */
+async function generateGeminiVideoSummary(videoId, title, author) {
+  const { GoogleGenerativeAI } = await import('@google/generative-ai');
+  
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  
+  console.log(`🎥 Gemini watching video: ${videoUrl}`);
+  
+  const prompt = `Watch this YouTube video and create a comprehensive summary.
+
+Video: "${title}" by ${author}
+
+Create a detailed summary in this EXACT format:
+
+## Summary
+Write 3-4 detailed paragraphs (400-500 words total) covering:
+- Main topic and purpose of the video
+- Key themes, concepts, and important information presented
+- Major insights, findings, examples, or demonstrations shown
+- Overall structure and flow of the content
+- Why this content is valuable or interesting
+
+Be specific about what is ACTUALLY shown and discussed in the video.
+
+## Highlights
+Create 8-12 key moments with REAL timestamps from the video:
+- **[MM:SS]** [Detailed 2-3 sentence description of what happens at this moment]
+- **[MM:SS]** [Detailed 2-3 sentence description]
+(Continue for all key moments)
+
+Be comprehensive and detailed. This summary will be used by teachers for educational purposes.`;
+
+  try {
+    const result = await model.generateContent([
+      prompt,
+      {
+        fileData: {
+          fileUri: videoUrl,
+          mimeType: 'video/mp4'
+        }
+      }
+    ]);
+    
+    const response = result.response;
+    const summaryText = response.text();
+    
+    console.log(`✓ Gemini video summary generated (${summaryText.length} chars)`);
+    return summaryText;
+    
+  } catch (error) {
+    console.error('❌ Gemini video watch error:', error);
+    throw new Error(`Gemini could not watch video: ${error.message}`);
   }
 }
