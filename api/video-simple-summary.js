@@ -6,8 +6,8 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 
-// Gemini REST API - use faster model for video processing
-const GEMINI_MODEL = 'gemini-1.5-flash';
+// Gemini REST API - use gemini-2.0-flash-exp for fastest video processing
+const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export const config = {
@@ -137,21 +137,15 @@ async function generateGeminiVideoSummary(videoId, title, author) {
   const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
   console.log(`🎥 Gemini watching video: ${videoUrl}`);
 
-  const prompt = `Watch this YouTube video and summarize it.
+  const prompt = `Summarize this YouTube video briefly.
 
-VIDEO: "${title}" by ${author}
-
-Provide:
+VIDEO: "${title}"
 
 ## Summary
-2-3 paragraphs covering the main topic, key points, and important takeaways.
+One paragraph about what this video covers.
 
-## Highlights
-List 6-8 key moments with timestamps:
-- **[MM:SS]** Brief description of what happens
-(Use real timestamps from the video)
-
-VIDEO URL: ${videoUrl}`;
+## Key Points
+- 5-6 main points from the video with timestamps [MM:SS]`;
 
   const requestBody = {
     contents: [{
@@ -161,9 +155,9 @@ VIDEO URL: ${videoUrl}`;
       ]
     }],
     generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 4000,
-      topP: 0.95
+      temperature: 0.2,
+      maxOutputTokens: 2000,
+      topP: 0.9
     },
     safetySettings: [
       { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -173,9 +167,9 @@ VIDEO URL: ${videoUrl}`;
     ]
   };
 
-  // Create AbortController for timeout (55 seconds to leave buffer)
+  // Use full 59 seconds - Vercel gives us 60
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 55000);
+  const timeoutId = setTimeout(() => controller.abort(), 59000);
 
   let response;
   try {
